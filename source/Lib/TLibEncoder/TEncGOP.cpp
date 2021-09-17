@@ -1228,6 +1228,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     m_pcCfg->setEncodedFlag(iGOPid, false);
   }
 
+  // GOP 内
   for ( Int iGOPid=0; iGOPid < m_iGopSize; iGOPid++ )
   {
     if (m_pcCfg->getEfficientFieldIRAPEnabled())
@@ -1568,6 +1569,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     Int actualTotalBits      = 0;
     Int estimatedBits        = 0;
     Int tmpBitsBeforeWriting = 0;
+    // 如果启用码率控制，
     if ( m_pcCfg->getUseRateCtrl() ) // TODO: does this work with multiple slices and slice-segments?
     {
       Int frameLevel = m_pcRateCtrl->getRCSeq()->getGOPID2Level( iGOPid );
@@ -1870,6 +1872,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         // Construct the final bitstream by concatenating substreams.
         // The final bitstream is either nalu.m_Bitstream or pcBitstreamRedirect;
         // Complete the slice header info.
+        // 通过合并子流构建最后的比特流
         m_pcEntropyCoder->setEntropyCoder   ( m_pcCavlcCoder );
         m_pcEntropyCoder->setBitstream(&nalu.m_Bitstream);
         m_pcEntropyCoder->encodeTilesWPPEntryPoint( pcSlice );
