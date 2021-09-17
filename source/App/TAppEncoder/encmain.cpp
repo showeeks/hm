@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
   Double dResult;
   clock_t lBefore = clock();
 
-  // call encoding function
+  // 调用编码函数
   cTAppEncTop.encode();
 
   // ending time

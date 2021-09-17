@@ -330,15 +330,19 @@ Void TEncTop::encode( Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvT
 {
   if (pcPicYuvOrg != NULL)
   {
-    // get original YUV
+    // 获取原始yuv
     TComPic* pcPicCurr = NULL;
 
+    // 使用默认 PPS ID
+    // PPS对如熵编码类型、有效参考图像的数目和初始化等解码参数进行标志记录。
     Int ppsID=-1; // Use default PPS ID
     if (getWCGChromaQPControl().isEnabled())
     {
       ppsID=getdQPs()[ m_iPOCLast+1 ];
     }
+    // 申请缓冲区
     xGetNewPicBuffer( pcPicCurr, ppsID );
+    // 把数据拷到缓冲区中
     pcPicYuvOrg->copyToPic( pcPicCurr->getPicYuvOrg() );
     pcPicYuvTrueOrg->copyToPic( pcPicCurr->getPicYuvTrueOrg() );
 
@@ -363,11 +367,13 @@ Void TEncTop::encode( Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvT
     return;
   }
 
+  // 如果启用了码率控制，那么初始化 GOP。
   if ( m_RCEnableRateControl )
   {
     m_cRateCtrl.initRCGOP( m_iNumPicRcvd );
   }
 
+  // 开始压缩 GOP
   // compress GOP
   m_cGOPEncoder.compressGOP(m_iPOCLast, m_iNumPicRcvd, m_cListPic, rcListPicYuvRecOut, accessUnitsOut, false, false, ipCSC, snrCSC, getOutputLogControl());
 
@@ -403,6 +409,7 @@ Void separateFields(Pel* org, Pel* dstField, UInt stride, UInt width, UInt heigh
 
 }
 
+// https://blog.csdn.net/lin453701006/article/details/52804298
 Void TEncTop::encode(Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvTrueOrg, const InputColourSpaceConversion ipCSC, const InputColourSpaceConversion snrCSC, TComList<TComPicYuv*>& rcListPicYuvRecOut, std::list<AccessUnit>& accessUnitsOut, Int& iNumEncoded, Bool isTff)
 {
   iNumEncoded = 0;
@@ -463,7 +470,7 @@ Void TEncTop::encode(Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvTr
                        isTopField);
       }
 
-      // compute image characteristics
+      // 根据配置判断是否启用自适应量化参数
       if ( getUseAdaptiveQP() )
       {
         m_cPreanalyzer.xPreanalyze( dynamic_cast<TEncPic*>( pcField ) );
@@ -486,17 +493,21 @@ Void TEncTop::encode(Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvTr
 // ====================================================================================================================
 
 /**
+ * 应用程序需要一个图像缓冲链表，大小为GOP+1
+ * 图像缓冲列表应该是一个环形缓冲
+ * 尾部应该是最后一张图片就。
  - Application has picture buffer list with size of GOP + 1
  - Picture buffer list acts like as ring buffer
  - End of the list has the latest picture
  .
- \retval rpcPic obtained picture buffer
+ \retval rpcPic 把rpcPic设置为获取的图像缓冲区
  */
 Void TEncTop::xGetNewPicBuffer ( TComPic*& rpcPic, Int ppsId )
 {
   rpcPic=0;
 
-  // At this point, the SPS and PPS can be considered activated - they are copied to the new TComPic.
+  // 在这个位置，SPS 和 PPS 可以被认为已经激活，这些数据会被拷到新的 TComPic 
+  // 先看有没有给 ppsid，如果给了就找索引对应的 pps，如果没有就默认是第一个 PPS。
   const TComPPS *pPPS=(ppsId<0) ? m_ppsMap.getFirstPS() : m_ppsMap.getPS(ppsId);
   assert (pPPS!=0);
   const TComPPS &pps=*pPPS;

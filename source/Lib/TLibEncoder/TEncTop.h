@@ -64,7 +64,7 @@
 // Class definition
 // ====================================================================================================================
 
-/// encoder class
+/// 编码器类
 class TEncTop : public TEncCfg
 {
 private:
@@ -83,7 +83,9 @@ private:
   TComLoopFilter          m_cLoopFilter;                  ///< deblocking filter class
   TEncSampleAdaptiveOffset m_cEncSAO;                     ///< sample adaptive offset class
   TEncEntropy             m_cEntropyCoder;                ///< entropy encoder
+  // CAVLC编码器
   TEncCavlc               m_cCavlcCoder;                  ///< CAVLC encoder
+  // SBAC 编码器
   TEncSbac                m_cSbacCoder;                   ///< SBAC encoder
   TEncBinCABAC            m_cBinCoderCABAC;               ///< bin coder CABAC
 

@@ -57,8 +57,8 @@ TEncPreanalyzer::~TEncPreanalyzer()
 {
 }
 
-/** Analyze source picture and compute local image characteristics used for QP adaptation
- * \param pcEPic Picture object to be analyzed
+/** 分析原图片并计算局部图像特征，根据分析结果给出合适的量化参数Analyze source picture and compute local image characteristics used for QP adaptation
+ * \param pcEPic 待分析的图片对象 Picture object to be analyzed
  * \return Void
  */
 Void TEncPreanalyzer::xPreanalyze( TEncPic* pcEPic )

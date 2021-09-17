@@ -1190,6 +1190,8 @@ printHash(const HashType hashType, const std::string &digestStr)
 // ====================================================================================================================
 // Public member functions
 // ====================================================================================================================
+
+// 从compressGOP 到 compressSlice http://www.360doc.com/content/18/1205/14/60086591_799479366.shtml
 Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rcListPic,
                            TComList<TComPicYuv*>& rcListPicYuvRecOut, std::list<AccessUnit>& accessUnitsInGOP,
                            Bool isField, Bool isTff, const InputColourSpaceConversion ip_conversion, const InputColourSpaceConversion snr_conversion, const TEncAnalyze::OutputLogControl &outputLogCtrl )
@@ -1220,6 +1222,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
   }
 
   // reset flag indicating whether pictures have been encoded
+  // 将 GOP 里面的图片设置为未编码
   for ( Int iGOPid=0; iGOPid < m_iGopSize; iGOPid++ )
   {
     m_pcCfg->setEncodedFlag(iGOPid, false);
@@ -1282,7 +1285,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
 #endif
 
 #endif
-    //  Slice data initialization
+    //  Slice 数据初始化
     pcPic->clearSliceBuffer();
     pcPic->allocateNewSlice();
     m_pcSliceEncoder->setSliceIdx(0);

@@ -634,7 +634,7 @@ Void TAppEncTop::encode()
 
   printChromaFormat();
 
-  // main encoder loop
+  // 开始编码循环
   Int   iNumEncoded = 0;
   Bool  bEos = false;
 
@@ -645,7 +645,7 @@ Void TAppEncTop::encode()
 
   TComPicYuv cPicYuvTrueOrg;
 
-  // allocate original YUV buffer
+  // 申请 YUV 缓冲 allocate original YUV buffer
   if( m_isField )
   {
     pcPicYuvOrg->create  ( m_sourceWidth, m_sourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
@@ -707,7 +707,7 @@ Void TAppEncTop::encode()
       m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd);
     }
 
-    // call encoding function for one frame
+    // 为每个帧调用编码函数
     if ( m_isField )
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, ipCSC, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
