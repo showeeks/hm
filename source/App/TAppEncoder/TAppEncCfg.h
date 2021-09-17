@@ -57,7 +57,7 @@ namespace po = df::program_options_lite;
 // Class definition
 // ====================================================================================================================
 
-/// encoder configuration class
+/// 编码器配置类
 class TAppEncCfg
 {
 public:
@@ -71,9 +71,9 @@ public:
 
 protected:
   // file I/O
-  std::string m_inputFileName;                                ///< source file name
-  std::string m_bitstreamFileName;                            ///< output bitstream file
-  std::string m_reconFileName;                                ///< output reconstruction file
+  std::string m_inputFileName;                                ///< 源文件名 source file name
+  std::string m_bitstreamFileName;                            ///< 输出比特流文件名 output bitstream file
+  std::string m_reconFileName;                                ///< 输出重建文件名 output reconstruction file
 #if SHUTTER_INTERVAL_SEI_PROCESSING
   Bool        m_ShutterFilterEnable;                          ///< enable Pre-Filtering with Shutter Interval SEI
   std::string m_shutterIntervalPreFileName;                   ///< output Pre-Filtering video

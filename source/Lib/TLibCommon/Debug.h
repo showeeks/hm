@@ -59,7 +59,7 @@ extern const TChar *partSizeToString[NUMBER_OF_PART_SIZES];
 
 // ---------------------------------------------------------------------------------------------- //
 
-// ---- Environment variables for test/debug ---- //
+// ---- 用于测试和调试的环境变量 Environment variables for test/debug ---- //
 
 class EnvVar
 {

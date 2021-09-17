@@ -11,3 +11,5 @@ deploy
 *.pyc
 .vs/
 .vscode/
+/_build
+.DS_Store

@@ -607,26 +607,27 @@ Void TAppEncTop::xInitLib(Bool isFieldCoding)
 // ====================================================================================================================
 
 /**
- - create internal class
- - initialize internal variable
- - until the end of input YUV file, call encoding function in TEncTop class
- - delete allocated buffers
- - destroy internal class
+ - 创建内部类 create internal class
+ - 初始化内部变量 initialize internal variable
+ - 反复调用编码函数 until the end of input YUV file, call encoding function in TEncTop class
+ - 删除申请的缓存 delete allocated buffers
+ - 析构内部类 destroy internal class
  .
  */
 Void TAppEncTop::encode()
 {
+  // 先读取文件
   fstream bitstreamFile(m_bitstreamFileName.c_str(), fstream::binary | fstream::out);
   if (!bitstreamFile)
   {
-    fprintf(stderr, "\nfailed to open bitstream file `%s' for writing\n", m_bitstreamFileName.c_str());
+    fprintf(stderr, "\n无法打开比特流文件 failed to open bitstream file `%s' for writing\n", m_bitstreamFileName.c_str());
     exit(EXIT_FAILURE);
   }
 
   TComPicYuv*       pcPicYuvOrg = new TComPicYuv;
   TComPicYuv*       pcPicYuvRec = NULL;
 
-  // initialize internal class & member variables
+  // 初始化内部类和成员变量 initialize internal class & member variables
   xInitLibCfg();
   xCreateLib();
   xInitLib(m_isField);

@@ -291,7 +291,7 @@ enum SliceType
   NUMBER_OF_SLICE_TYPES = 3
 };
 
-/// chroma formats (according to semantics of chroma_format_idc)
+/// 有三种色彩采样格式，chroma formats (according to semantics of chroma_format_idc)
 enum ChromaFormat
 {
   CHROMA_400        = 0,

@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 {
   TAppEncTop  cTAppEncTop;
 
-  // print information
+  // 先打印编译时的信息。
   fprintf( stdout, "\n" );
   fprintf( stdout, "HM software: Encoder Version [%s] (including RExt)", NV_VERSION );
   fprintf( stdout, NVM_ONOS );
@@ -61,12 +61,13 @@ int main(int argc, char* argv[])
   fprintf( stdout, NVM_BITS );
   fprintf( stdout, "\n\n" );
 
-  // create application encoder class
+  // 创建编码器类
   cTAppEncTop.create();
 
-  // parse configuration
+  // 解析配置 parse configuration
   try
   {
+    // 如果解析失败，回收资源
     if(!cTAppEncTop.parseCfg( argc, argv ))
     {
       cTAppEncTop.destroy();
@@ -79,6 +80,7 @@ int main(int argc, char* argv[])
   catch (df::program_options_lite::ParseFailure &e)
   {
     std::cerr << "Error parsing option \""<< e.arg <<"\" with argument \""<< e.val <<"\"." << std::endl;
+    std::cerr << "[错误] 解析选项 \""<< e.arg <<"\" with argument \""<< e.val <<"\"." << std::endl;
     return 1;
   }
 

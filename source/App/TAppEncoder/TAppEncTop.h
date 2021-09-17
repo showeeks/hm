@@ -53,7 +53,7 @@
 // Class definition
 // ====================================================================================================================
 
-/// encoder application class
+/// 编码器 App 类
 class TAppEncTop : public TAppEncCfg
 {
 private:
@@ -74,9 +74,13 @@ private:
 
 protected:
   // initialization
+  // 创建文件和编码类
   Void  xCreateLib        ();                               ///< create files & encoder class
+  // 初始化内部变量
   Void  xInitLibCfg       ();                               ///< initialize internal variables
+  // 初始化编码类
   Void  xInitLib          (Bool isFieldCoding);             ///< initialize encoder class
+  // 析构编码类
   Void  xDestroyLib       ();                               ///< destroy encoder class
 
   /// obtain required buffers
