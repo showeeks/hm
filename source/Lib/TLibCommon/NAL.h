@@ -42,13 +42,18 @@
 class TComOutputBitstream;
 
 /**
+ * 表示一个NALU头和相关的RBSPayload
  * Represents a single NALunit header and the associated RBSPayload
  */
 struct NALUnit
 {
-  NalUnitType m_nalUnitType; ///< nal_unit_type
-  UInt        m_temporalId;  ///< temporal_id
-  UInt        m_nuhLayerId;  ///< nuh_layer_id
+  // 长度位6比特，NALU的类型。规范规定同一 access unit的VCL NALU的类型必须相同，
+  NalUnitType m_nalUnitType;
+  // 长度为3比特，属于同一个 access Unit的VCL NALU的temporalId必须相同
+  // tid 较低的图片不允许参考 tid 较高的图片，比如说 b 帧的 tid 肯定比 i帧和 p 帧高
+  UInt        m_temporalId;  
+  // 长度为6比特，始终设置为 0
+  UInt        m_nuhLayerId;  
 
   NALUnit(const NALUnit &src)
   :m_nalUnitType (src.m_nalUnitType)

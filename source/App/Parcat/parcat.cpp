@@ -41,18 +41,33 @@
 
 enum NalUnitType
 {
+  // 0-5属于原始 trailing。原始 trailing 的唯一要求是不能参考之后的I帧。
+  // ordinary trailing picutres
   TRAIL_N = 0, // 0
   TRAIL_R,     // 1
 
+  // temporal sublayer access
+  // tsa 指的是它代表了 temporal sub-layer 的转换时机。TSA属于STSA，属于原始trailing
+  // TSA帧和其编码顺序上随后的TSA帧不会参考TSA帧之前的、TID大于等于TSA帧的任何帧。
+  // TSA 的 TID 必须大于0。
   TSA_N,       // 2
   TSA_R,       // 3
 
+  // step-wise temporal sublayer access
+  // STSA帧要满足STSA帧及其编码顺序后面的相同TID的STSA帧不会参考该STSA帧编码顺序前面、有相同TID的帧。
+  // STSA 属于原始 trailing。
+  // STSA 的 TID 必须大于 0。
   STSA_N,      // 4
   STSA_R,      // 5
-
+  // leading 帧编号为6-9，RADL帧只能引用后面的一个帧，RASL帧则比较随便。
+  // leading 帧不允许被 trailing 帧引用，
+  // Random Access Decodable Leading
+  // 随机访问时可以解码
   RADL_N,      // 6
   RADL_R,      // 7
-
+  // Random Access Skipped Leading
+  // 随机访问时无法解码，顺序播放时才能解码。RASL 帧在输出顺序上必须位于
+  // RADL 帧之前。
   RASL_N,      // 8
   RASL_R,      // 9
 
@@ -63,11 +78,29 @@ enum NalUnitType
   RESERVED_VCL_N14,
   RESERVED_VCL_R15,
 
+  // 从 16 到 23 都是 intra random access point IRAP 类型
+  // 所有 IRAP 都必须属于 tid=0，仅使用帧内编码技术，不允许
+  // 引用其他帧。IRAP 即是我们比较熟悉的 I 帧。
+  // 一般来说实时性较强的广播和会议，I帧仅在信号需要恢复时
+  // 发送，而在视频中，视频要求能够随机播放，因此 I 帧均匀分布。
+
+  // BLA帧指的是无效引用帧，引用BLA帧的RDSL帧都无法参考
+  // BLA帧也会重启CVS，但是 POC 会被设置为 BLA Header POC。
+  // 允许所有 leading 
   BLA_W_LP,    // 16
+  // 仅允许 RADL 帧
   BLA_W_RADL,  // 17
+  // 禁止所有 leading
   BLA_N_LP,    // 18
+  // IDR 帧是帧内帧，
+  // 会刷新解码过程，所以IDR帧后面的帧不能引用 IDR 帧前面的帧。
+  // IDR_W_RADL 可以被leading帧引用。
+  // 因为该类型会开启新的 CSV，所以引用该类型的leading帧的POC都是负的
   IDR_W_RADL,  // 19
+  // IDR_N_LP 不允许被任何leading帧引用。
   IDR_N_LP,    // 20
+  // Clean Room Access 也是帧内帧，但是要求没有 IDR 那么严格，引用该类型的
+  // 的 leading 帧可以引用CRA之前的帧。
   CRA,         // 21
   RESERVED_IRAP_VCL22,
   RESERVED_IRAP_VCL23,

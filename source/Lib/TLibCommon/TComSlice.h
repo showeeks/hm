@@ -1229,7 +1229,10 @@ private:
   //  Bitstream writing
   Bool                       m_saoEnabledFlag[MAX_NUM_CHANNEL_TYPE];
   Int                        m_iPPSId;               ///< picture parameter set ID
-  Bool                       m_PicOutputFlag;        ///< pic_output_flag
+  // pic output flag 
+  // 这个 flag=1 时，输出必须在 IRAP 之前，必须在引用IRAP的RADL帧之前输出，
+  // 
+  Bool                       m_PicOutputFlag;
   Int                        m_iPOC;
   Int                        m_iLastIDR;
   Int                        m_iAssociatedIRAP;
