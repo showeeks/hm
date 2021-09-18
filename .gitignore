@@ -13,3 +13,4 @@ deploy
 .vscode/
 /_build
 .DS_Store
+out/
