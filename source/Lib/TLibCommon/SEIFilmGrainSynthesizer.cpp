@@ -812,7 +812,7 @@ void SEIFilmGrainSynthesizer::dataBaseGen()
         }
       }
 
-      /* De-blocking at horizontal 8×8 block edges */
+      /* De-blocking at horizontal 8? block edges */
       if (m_enableDeblocking)
       {
         for (l = 0; l < DATA_BASE_SIZE; l += 8)
