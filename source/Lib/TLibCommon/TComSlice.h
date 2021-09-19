@@ -1034,6 +1034,7 @@ public:
 class TComPPS
 {
 private:
+  // 
   Int              m_PPSId;                    // pic_parameter_set_id
   Int              m_SPSId;                    // seq_parameter_set_id
   Int              m_picInitQPMinus26;

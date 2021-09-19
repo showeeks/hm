@@ -1,4 +1,4 @@
-/* The copyright in this software is being made available under the BSD
+﻿/* The copyright in this software is being made available under the BSD
  * License, included below. This software may be subject to other third party
  * and contributor rights, including patent rights, and no such rights are
  * granted under this license.
@@ -636,7 +636,10 @@ Void TEncSlice::calCostSliceI(TComPic* pcPic) // TODO: this only analyses the fi
   m_pcRateCtrl->getRCPic()->setTotalIntraCost(iSumHadSlice);
 }
 
-/** \param pcPic   picture class
+/**
+ *
+ * \param pcPic   picture class
+ * 
  */
 Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, const Bool bFastDeltaQP )
 {
@@ -714,8 +717,9 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
 
 
 
-  // Adjust initial state if this is the start of a dependent slice.
+  // 调整初始状态 Adjust initial state if this is the start of a dependent slice.
   {
+    // 获取初始 CTU
     const UInt      ctuRsAddr               = pcPic->getPicSym()->getCtuTsToRsAddrMap( startCtuTsAddr);
     const UInt      currentTileIdx          = pcPic->getPicSym()->getTileIdxMap(ctuRsAddr);
     const TComTile *pCurrentTile            = pcPic->getPicSym()->getTComTile(currentTileIdx);
@@ -730,12 +734,12 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     }
   }
 
-  // for every CTU in the slice segment (may terminate sooner if there is a byte limit on the slice-segment)
+  // 遍历 Slice Segment 中的 CTU for every CTU in the slice segment (may terminate sooner if there is a byte limit on the slice-segment)
 
   for( UInt ctuTsAddr = startCtuTsAddr; ctuTsAddr < boundingCtuTsAddr; ++ctuTsAddr )
   {
     const UInt ctuRsAddr = pcPic->getPicSym()->getCtuTsToRsAddrMap(ctuTsAddr);
-    // initialize CTU encoder
+    // 初始化 CPU 编码器
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
     pCtu->initCtu( pcPic, ctuRsAddr );
 

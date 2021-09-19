@@ -41,6 +41,8 @@
 
 enum NalUnitType
 {
+  // N - Nonreference 该帧未被同一时间子层参考，但可能被更高时间子层参考
+  // R - reference 该帧被同一时间子层参考
   // 0-5属于原始 trailing。原始 trailing 的唯一要求是不能参考之后的I帧。
   // ordinary trailing picutres
   // 0
@@ -115,12 +117,19 @@ enum NalUnitType
   RESERVED_VCL30,
   RESERVED_VCL31,
 
+  // 32-34 是参数集类型
+  // VPS
   VPS,                     // 32
+  // SPS
   SPS,                     // 33
+  // PPS
   PPS,                     // 34
   ACCESS_UNIT_DELIMITER,   // 35
+  // End of Sequence 表示 CVS 的结尾。它没有payload，只有一个两字节的header
   EOS,                     // 36
+  // End of bitstream
   EOB,                     // 37
+  // Filler 一般没有任何用
   FILLER_DATA,             // 38
   PREFIX_SEI,              // 39
   SUFFIX_SEI,              // 40

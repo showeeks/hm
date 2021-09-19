@@ -1,4 +1,4 @@
-/* The copyright in this software is being made available under the BSD
+﻿/* The copyright in this software is being made available under the BSD
  * License, included below. This software may be subject to other third party
  * and contributor rights, including patent rights, and no such rights are
  * granted under this license.
@@ -60,7 +60,8 @@ static const UInt NUM_MOST_PROBABLE_MODES=3;
 // Class definition
 // ====================================================================================================================
 
-/// CU data structure class
+/// CTU可以以 zig-zag 顺序四叉树的方式存储，所以
+// https://blog.csdn.net/spark19851210/article/details/8964559 HM 代码整体介绍
 class TComDataCU
 {
 private:
