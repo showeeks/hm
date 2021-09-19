@@ -14,3 +14,5 @@ deploy
 /_build
 .DS_Store
 out/
+.idea/
+cmake*

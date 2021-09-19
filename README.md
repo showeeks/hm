@@ -1,6 +1,12 @@
 HM reference software for HEVC
 ==============================
 
+学习进度
+
+- [ ] 量化与变换
+- [ ] 帧内变换
+- [ ] 帧间变换与运动预测
+
 This software package is the reference software for Rec. ITU-T H.265 | ISO/IEC 23008-2 High Efficiency Video Coding (HEVC). The reference software includes both encoder and decoder functionality.
 
 Reference software is useful in aiding users of a video coding standard to establish and test conformance and interoperability, and to educate users and demonstrate the capabilities of the standard. For these purposes, this software is provided as an aid for the study and implementation of Rec. ITU-T H.265 | ISO/IEC 23008-2 High Efficiency Video Coding.

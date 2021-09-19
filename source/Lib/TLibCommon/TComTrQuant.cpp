@@ -1929,14 +1929,16 @@ Void TComTrQuant::invRdpcmNxN( TComTU& rTu, const ComponentID compID, Pel* pcRes
 // Logical transform
 // ------------------------------------------------------------------------------------------------
 
-/** Wrapper function between HM interface and core NxN forward transform (2D)
+/**
+ * Wrapper function between HM interface and core NxN forward transform (2D)
+ * 该函数包装了一下前向变换
  *  \param channelBitDepth bit depth of channel
  *  \param useDST
  *  \param piBlkResi input data (residual)
  *  \param uiStride stride of input residual data
- *  \param psCoeff output data (transform coefficients)
- *  \param iWidth transform width
- *  \param iHeight transform height
+ *  \param psCoeff output data (transform coefficients) 输出数据(转换系数)
+ *  \param iWidth transform width 转换宽度
+ *  \param iHeight transform height 转换高度
  *  \param maxLog2TrDynamicRange
  */
 Void TComTrQuant::xT( const Int channelBitDepth, Bool useDST, Pel* piBlkResi, UInt uiStride, TCoeff* psCoeff, Int iWidth, Int iHeight, const Int maxLog2TrDynamicRange )
