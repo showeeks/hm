@@ -384,15 +384,19 @@ Void xITr(Int bitDepth, TCoeff *coeff, Pel *block, UInt uiStride, UInt uiTrSize,
  *  4x4 forward transform implemented using partial butterfly structure (1D)
  *  \param src   输入数据 (残差))
  *  \param dst   输出数据 (转换系数))
- *  \param shift 是否在1维变换后向右shift
- *  \param line
+ *  \param shift 缩放系数
+ *  \param line src矩阵共有line行
  */
 Void partialButterfly4(TCoeff *src, TCoeff *dst, Int shift, Int line)
 {
   Int j;
+  // E=Even Part偶数部分
+  // O=Odd Part奇数部分
   TCoeff E[2],O[2];
+  // add用来做ceiling
   TCoeff add = (shift > 0) ? (1<<(shift-1)) : 0;
 
+  // 对每一行做操作
   for (j=0; j<line; j++)
   {
     /* E and O */
@@ -401,6 +405,9 @@ Void partialButterfly4(TCoeff *src, TCoeff *dst, Int shift, Int line)
     E[1] = src[1] + src[2];
     O[1] = src[1] - src[2];
 
+    // 加一个add保证不足部分进1
+    // 第一行乘出来的结果会存到第一列
+    // 所以该函数会行列转换，两次行列转换得到最终系数矩阵
     dst[0]      = (g_aiT4[TRANSFORM_FORWARD][0][0]*E[0] + g_aiT4[TRANSFORM_FORWARD][0][1]*E[1] + add)>>shift;
     dst[2*line] = (g_aiT4[TRANSFORM_FORWARD][2][0]*E[0] + g_aiT4[TRANSFORM_FORWARD][2][1]*E[1] + add)>>shift;
     dst[line]   = (g_aiT4[TRANSFORM_FORWARD][1][0]*O[0] + g_aiT4[TRANSFORM_FORWARD][1][1]*O[1] + add)>>shift;
@@ -849,11 +856,13 @@ Void partialButterflyInverse32(TCoeff *src, TCoeff *dst, Int shift, Int line, co
 }
 
 /** MxN forward transform (2D)
-*  \param bitDepth              [in]  bit depth
-*  \param block                 [in]  residual block
-*  \param coeff                 [out] transform coefficients
-*  \param iWidth                [in]  width of transform
-*  \param iHeight               [in]  height of transform
+ * 基本过程是列变换 -> S_{T1} -> 行变换 -> S_{T2}
+ * 
+*  \param bitDepth              [in]  位深度
+*  \param block                 [in]  残差块
+*  \param coeff                 [out] 转换系数
+*  \param iWidth                [in]  转换宽度
+*  \param iHeight               [in]  转换高度
 *  \param useDST                [in]
 *  \param maxLog2TrDynamicRange [in]
 
@@ -862,7 +871,10 @@ Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight,
 {
   const Int TRANSFORM_MATRIX_SHIFT = g_transformMatrixShift[TRANSFORM_FORWARD]; // =6
 
+  // 计算 $S_{T1}$, 应为 M+B-9，其中M=g_aucConvertToBit[iWidth] + 2, B=bitDepth, -9=TRANSFORM_MATRIX_SHIFT-maxLog2TrDynamicRange
+  // TRANSFORM_MATRIX_SHIFT=6, maxLog2TrDynamicRange=15
   const Int shift_1st = ((g_aucConvertToBit[iWidth] + 2) +  bitDepth + TRANSFORM_MATRIX_SHIFT) - maxLog2TrDynamicRange;
+  // 计算 $S_{T2}$, 应为 M+6
   const Int shift_2nd = (g_aucConvertToBit[iHeight] + 2) + TRANSFORM_MATRIX_SHIFT;
 
   assert(shift_1st >= 0);
@@ -870,6 +882,7 @@ Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight,
 
   TCoeff tmp[ MAX_TU_SIZE * MAX_TU_SIZE ];
 
+  // 先列变换
   switch (iWidth)
   {
     case 4:
@@ -880,6 +893,7 @@ Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight,
         }
         else
         {
+          // 把缩放系数 shift_1st 传给矩阵变换
           partialButterfly4 ( block, tmp, shift_1st, iHeight );
         }
       }
@@ -892,6 +906,7 @@ Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight,
       assert(0); exit (1); break;
   }
 
+  // 再将上一步结果做行变换
   switch (iHeight)
   {
     case 4:
@@ -902,6 +917,7 @@ Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight,
         }
         else
         {
+          // 把缩放系数 shift_1st 传给矩阵变换
           partialButterfly4 ( tmp, coeff, shift_2nd, iWidth );
         }
       }

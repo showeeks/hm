@@ -123,13 +123,14 @@ Void TComLoopFilter::destroy()
 }
 
 /**
+ * 为图片的每个CU都做一次deblocking
  - call deblocking function for every CU
  .
  \param  pcPic   picture class (TComPic) pointer
  */
 Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
 {
-  // Horizontal filtering
+  // 水平过滤
   for ( UInt ctuRsAddr = 0; ctuRsAddr < pcPic->getNumberOfCtusInFrame(); ctuRsAddr++ )
   {
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
@@ -141,7 +142,7 @@ Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
     xDeblockCU( pCtu, 0, 0, EDGE_VER );
   }
 
-  // Vertical filtering
+  // 垂直过滤
   for ( UInt ctuRsAddr = 0; ctuRsAddr < pcPic->getNumberOfCtusInFrame(); ctuRsAddr++ )
   {
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
