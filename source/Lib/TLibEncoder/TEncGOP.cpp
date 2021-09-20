@@ -1193,7 +1193,13 @@ printHash(const HashType hashType, const std::string &digestStr)
 
 // 从compressGOP 到 compressSlice http://www.360doc.com/content/18/1205/14/60086591_799479366.shtml
 /**
+ * 对一整个GOP进行编码
  * 处理一个GOP
+ * 
+ * 首先初始化，设置一些参数，比如GOP中帧的数量，设置图像增强信息
+ * 然后对每一帧作处理，设置参考图像集，参考帧，对参考帧排序
+ * 并且对帧的每一个slice编码，先选出最优参数，完成预测，变换，量化，环路滤波，最后encodeSlice 熵编码
+ * 
  * \param iPOCLast 
  **/
 Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rcListPic,
@@ -1233,7 +1239,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     m_pcCfg->setEncodedFlag(iGOPid, false);
   }
 
-  // 遍历GOP
+  // 遍历GOP，对每一帧作处理，设置参考图像集，参考帧，对参考帧排序
   for ( Int iGOPid=0; iGOPid < m_iGopSize; iGOPid++ )
   {
     if (m_pcCfg->getEfficientFieldIRAPEnabled())
@@ -1819,6 +1825,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     std::size_t binCountsInNalUnits   = 0; // For implementation of cabac_zero_word stuffing (section 7.4.3.10)
     std::size_t numBytesInVclNalUnits = 0; // For implementation of cabac_zero_word stuffing (section 7.4.3.10)
 
+    // 对帧的每一个slice编码，先选出最优参数，完成预测，变换，量化，环路滤波，最后encodeSlice 熵编码
     for( UInt sliceSegmentStartCtuTsAddr = 0, sliceIdxCount=0; sliceSegmentStartCtuTsAddr < pcPic->getPicSym()->getNumberOfCtusInFrame(); sliceIdxCount++, sliceSegmentStartCtuTsAddr=pcSlice->getSliceSegmentCurEndCtuTsAddr() )
     {
       pcSlice = pcPic->getSlice(sliceIdxCount);

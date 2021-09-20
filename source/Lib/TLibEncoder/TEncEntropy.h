@@ -55,7 +55,7 @@ class SEI;
 // Class definition
 // ====================================================================================================================
 
-/// entropy encoder pure class
+// 熵编码器的实现类接口
 class TEncEntropyIf
 {
 public:
@@ -112,7 +112,10 @@ public:
   virtual ~TEncEntropyIf() {}
 };
 
-/// entropy encoder class
+/**
+ * 熵编码编码器的管理类，管理 TEntropyIf
+ * 
+ **/
 class TEncEntropy
 {
 public:

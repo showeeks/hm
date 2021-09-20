@@ -78,6 +78,7 @@ Void TEncSlice::destroy()
 
 Void TEncSlice::init( TEncTop* pcEncTop )
 {
+  // 获取编码器配置
   m_pcCfg             = pcEncTop;
   m_pcListPic         = pcEncTop->getListPic();
 
@@ -91,7 +92,9 @@ Void TEncSlice::init( TEncTop* pcEncTop )
   m_pcTrQuant         = pcEncTop->getTrQuant();
 
   m_pcRdCost          = pcEncTop->getRdCost();
+  // 从配置中获取 SBAC 编码器
   m_pppcRDSbacCoder   = pcEncTop->getRDSbacCoder();
+  // 从配置中获取比特计数器
   m_pcRDGoOnSbacCoder = pcEncTop->getRDGoOnSbacCoder();
 
   // create lambda and QP arrays
@@ -636,7 +639,10 @@ Void TEncSlice::calCostSliceI(TComPic* pcPic) // TODO: this only analyses the fi
 }
 
 /**
- *
+ * 设置参数
+ * 初始化：
+ * 1. 对片上的每个LCU调用initCU(初始化CU)和compressCU(对CU编码)和encodeCU(对CU进行熵编
+ * 码，选择最优参数)
  * \param pcPic   picture class
  * 
  */
@@ -645,10 +651,15 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
   // if bCompressEntireSlice is true, then the entire slice (not slice segment) is compressed,
   //   effectively disabling the slice-segment-mode.
 
+  // CU的开始地址
   UInt   startCtuTsAddr;
+  // CU的边界地址
   UInt   boundingCtuTsAddr;
+  // 当前的条带
   TComSlice* const pcSlice            = pcPic->getSlice(getSliceIdx());
+  // slice中当前的比特数量为0
   pcSlice->setSliceSegmentBits(0);
+  // 得到CU的开始和结束地址
   xDetermineStartAndBoundingCtuTsAddr ( startCtuTsAddr, boundingCtuTsAddr, pcPic );
   if (bCompressEntireSlice)
   {
@@ -656,14 +667,20 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     pcSlice->setSliceSegmentCurEndCtuTsAddr(boundingCtuTsAddr);
   }
 
-  // initialize cost values - these are used by precompressSlice (they should be parameters).
+  // 初始化开销值 initialize cost values - these are used by precompressSlice (they should be parameters).
+  // 图像的总的比特数
   m_uiPicTotalBits  = 0;
+  // 率失真代价 pic rd cost
   m_dPicRdCost      = 0; // NOTE: This is a write-only variable!
+  // 帧的失真 picture distortion
   m_uiPicDist       = 0;
 
   m_pcEntropyCoder->setEntropyCoder   ( m_pppcRDSbacCoder[0][CI_CURR_BEST] );
+  // 重置熵编码器
+  // 进行上下文模型的初始化，codILow 和 codIRange 的初始化
   m_pcEntropyCoder->resetEntropy      ( pcSlice );
 
+  // 加载熵编码器 SBAC
   TEncBinCABAC* pRDSbacCoder = (TEncBinCABAC *) m_pppcRDSbacCoder[0][CI_CURR_BEST]->getEncBinIf();
   pRDSbacCoder->setBinCountingEnableFlag( false );
   pRDSbacCoder->setBinsCoded( 0 );
@@ -677,6 +694,7 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
   //  Weighted Prediction parameters estimation.
   //------------------------------------------------------------------------------
   // calculate AC/DC values for current picture
+  // 是否使用 wave front prediction 波前前向预测
   if( pcSlice->getPPS()->getUseWP() || pcSlice->getPPS()->getWPBiPred() )
   {
     xCalcACDCParamSlice(pcSlice);
@@ -684,6 +702,7 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
 
   const Bool bWp_explicit = (pcSlice->getSliceType()==P_SLICE && pcSlice->getPPS()->getUseWP()) || (pcSlice->getSliceType()==B_SLICE && pcSlice->getPPS()->getWPBiPred());
 
+  // 不使用 Wavefront 所也不进入
   if ( bWp_explicit )
   {
     //------------------------------------------------------------------------------
@@ -701,7 +720,9 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     xCheckWPEnable( pcSlice );
   }
 
+  // 是否使用自适应量化步长
 #if ADAPTIVE_QP_SELECTION
+  // 不使用，不进入
   if( m_pcCfg->getUseAdaptQpSelect() && !(pcSlice->getDependentSliceSegmentFlag()))
   {
     // TODO: this won't work with dependent slices: they do not have their own QP. Check fix to mask clause execution with && !(pcSlice->getDependentSliceSegmentFlag())
@@ -739,7 +760,9 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
   {
     const UInt ctuRsAddr = pcPic->getPicSym()->getCtuTsToRsAddrMap(ctuTsAddr);
     // 初始化 CPU 编码器
+    // 根据CTU的地址取得CTU
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
+    // 初始化CTU
     pCtu->initCtu( pcPic, ctuRsAddr );
 
     // update CABAC state
@@ -822,6 +845,9 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     }
 
     // run CTU trial encoder
+    // 对CU进行编码（压缩）
+    // 帧内预测，帧间预测，变换，量化
+    // 尝试一下编码，选出最优熵编码方案
     m_pcCuEncoder->compressCtu( pCtu );
 
 
@@ -829,13 +855,17 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     // which will result in the state of the contexts being correct. It will also count up the number of bits coded,
     // which is used if there is a limit of the number of bytes per slice-segment.
 
+    // 熵编码器设置为Sbac
     m_pcEntropyCoder->setEntropyCoder ( m_pppcRDSbacCoder[0][CI_CURR_BEST] );
+    // 设置需要写入的比特流
     m_pcEntropyCoder->setBitstream( &tempBitCounter );
     pRDSbacCoder->setBinCountingEnableFlag( true );
+    // 比特计数器（用于统计熵编码器写入到比特流中的比特数）
     m_pppcRDSbacCoder[0][CI_CURR_BEST]->resetBits();
     pRDSbacCoder->setBinsCoded( 0 );
 
     // encode CTU and calculate the true bit counters.
+    // 对CU进行编码，这里是真正的进行熵编码
     m_pcCuEncoder->encodeCtu( pCtu );
 
 
@@ -847,6 +877,7 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
     // cannot terminate if current slice/slice-segment would be 0 Ctu in size,
     const UInt validEndOfSliceCtuTsAddr = ctuTsAddr + (ctuTsAddr == startCtuTsAddr ? 1 : 0);
     // Set slice end parameter
+    // 判断该CTU是否是条带中的最后一个CU
     if(pcSlice->getSliceMode()==FIXED_NUMBER_OF_BYTES && pcSlice->getSliceBits()+numberOfWrittenBits > (pcSlice->getSliceArgument()<<3))
     {
       pcSlice->setSliceSegmentCurEndCtuTsAddr(validEndOfSliceCtuTsAddr);
@@ -873,7 +904,7 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
       m_entropyCodingSyncContextState.loadContexts(m_pppcRDSbacCoder[0][CI_CURR_BEST]);
     }
 
-
+    // 没有使用码率控制
     if ( m_pcCfg->getUseRateCtrl() )
     {
       Int actualQP        = g_RCInvalidQPValue;
@@ -923,9 +954,11 @@ Void TEncSlice::compressSlice( TComPic* pcPic, const Bool bCompressEntireSlice, 
                                                 pCtu->getSlice()->getSliceType() == I_SLICE ? 0 : m_pcCfg->getLCULevelRC() );
 #endif
     }
-
+    // 计算总的比特数
     m_uiPicTotalBits += pCtu->getTotalBits();
+    // 计算运行代价
     m_dPicRdCost     += pCtu->getTotalCost();
+    // 计算失真率
     m_uiPicDist      += pCtu->getTotalDistortion();
   }
 
@@ -958,7 +991,10 @@ Void TEncSlice::encodeSlice   ( TComPic* pcPic, TComOutputBitstream* pcSubstream
   const UInt startCtuTsAddr          = pcSlice->getSliceSegmentCurStartCtuTsAddr();
   const UInt boundingCtuTsAddr       = pcSlice->getSliceSegmentCurEndCtuTsAddr();
 
+  // 获取一帧图像纵向可以存放多少个CU(目前是3个)
+  // 同理垂直方向也可以存放3个，所以一个slice有3*3=9个LCU
   const UInt frameWidthInCtus        = pcPic->getPicSym()->getFrameWidthInCtus();
+  // 禁用依赖性 slice segments
   const Bool depSliceSegmentsEnabled = pcSlice->getPPS()->getDependentSliceSegmentsEnabledFlag();
   const Bool wavefrontsEnabled       = pcSlice->getPPS()->getEntropyCodingSyncEnabledFlag();
 
@@ -982,7 +1018,7 @@ Void TEncSlice::encodeSlice   ( TComPic* pcPic, TComOutputBitstream* pcSubstream
   g_bJustDoIt = g_bEncDecTraceDisable;
 #endif
 
-
+  // 是否启用了slice segments
   if (depSliceSegmentsEnabled)
   {
     // modify initial contexts with previous slice segment if this is a dependent slice.

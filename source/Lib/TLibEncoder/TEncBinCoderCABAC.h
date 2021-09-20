@@ -44,6 +44,9 @@
 //! \ingroup TLibEncoder
 //! \{
 
+/**
+ * 二进制CABAC类
+ **/
 class TEncBinCABAC : public TEncBinIf
 {
 public:

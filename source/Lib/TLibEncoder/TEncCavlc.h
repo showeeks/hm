@@ -66,7 +66,9 @@ public:
   Void  codeAUD(TComBitIf& bs, const Int pictureType);
 };
 
-/// CAVLC encoder class
+/**
+ * 熵编码算法CAVLC的实现
+ **/
 class TEncCavlc : public SyntaxElementWriter, public TEncEntropyIf
 {
 public:

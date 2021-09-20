@@ -46,6 +46,11 @@
 
 class TEncBinCABAC;
 
+/**
+ * 二进制编码的接口
+ * 熵编码会用到二进制编码
+ * 其他没有熵编码要素的也可能用到二进制编码类
+ **/
 class TEncBinIf
 {
 public:

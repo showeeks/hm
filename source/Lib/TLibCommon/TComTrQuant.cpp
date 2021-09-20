@@ -226,7 +226,7 @@ Void TComTrQuant::clearSliceARLCnt()
 
 
 #if MATRIX_MULT
-/** NxN forward transform (2D) using brute force matrix multiplication (3 nested loops)
+/** 朴素矩阵DCT变换，NxN forward transform (2D) using brute force matrix multiplication (3 nested loops)
  *  \param block pointer to input data (residual)
  *  \param coeff pointer to output data (transform coefficients)
  *  \param uiStride stride of input data
@@ -241,6 +241,7 @@ Void xTr(Int bitDepth, Pel *block, TCoeff *coeff, UInt uiStride, UInt uiTrSize, 
   const TMatrixCoeff *iT;
   UInt uiLog2TrSize = g_aucConvertToBit[ uiTrSize ] + 2;
 
+  // 选择变化矩阵
   if (uiTrSize==4)
   {
     iT  = (useDST ? g_as_DST_MAT_4[TRANSFORM_FORWARD][0] : g_aiT4[TRANSFORM_FORWARD][0]);
@@ -269,7 +270,7 @@ Void xTr(Int bitDepth, Pel *block, TCoeff *coeff, UInt uiStride, UInt uiTrSize, 
   const Int add_1st = (shift_1st>0) ? (1<<(shift_1st-1)) : 0;
   const Int add_2nd = 1<<(shift_2nd-1);
 
-  /* Horizontal transform */
+  /* 水平方向的1D变换 */
 
   for (i=0; i<uiTrSize; i++)
   {
@@ -284,7 +285,7 @@ Void xTr(Int bitDepth, Pel *block, TCoeff *coeff, UInt uiStride, UInt uiTrSize, 
     }
   }
 
-  /* Vertical transform */
+  /* 垂直方向的一维变换 */
   for (i=0; i<uiTrSize; i++)
   {
     for (j=0; j<uiTrSize; j++)
@@ -400,6 +401,7 @@ Void partialButterfly4(TCoeff *src, TCoeff *dst, Int shift, Int line)
   for (j=0; j<line; j++)
   {
     /* E and O */
+    // 定义四个临时变量，免得后面蝶形反复计算
     E[0] = src[0] + src[3];
     O[0] = src[0] - src[3];
     E[1] = src[1] + src[2];
@@ -856,6 +858,7 @@ Void partialButterflyInverse32(TCoeff *src, TCoeff *dst, Int shift, Int line, co
 }
 
 /** MxN forward transform (2D)
+ * 使用蝶形变换实现DCT
  * 基本过程是列变换 -> S_{T1} -> 行变换 -> S_{T2}
  * 
 *  \param bitDepth              [in]  位深度
@@ -1463,7 +1466,10 @@ Void TComTrQuant::init(   UInt  uiMaxTrSize,
   m_useTransformSkipFast = useTransformSkipFast;
 }
 
-
+/**
+ * 变换和量化
+ * 
+ **/
 Void TComTrQuant::transformNxN(       TComTU        & rTu,
                                 const ComponentID     compID,
                                       Pel          *  pcResidual,
@@ -1491,7 +1497,7 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
   if (rdpcmMode == RDPCM_OFF)
   {
     uiAbsSum = 0;
-    // 转换和量化
+    // 判断是否跳过变换量化步骤，如果跳过的话，变换量化稀疏直接就是残差系数
     if(pcCU->getCUTransquantBypass(uiAbsPartIdx))
     {
       const Bool rotateResidual = rTu.isNonTransformedResidualRotated(compID);
@@ -1516,14 +1522,17 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
 #endif
 
       assert( (pcCU->getSlice()->getSPS()->getMaxTrSize() >= uiWidth) );
-      // 先转换， 将残差用 DCT 转换为频域
+      // 先变换， 将残差用 DCT 转换为频域
+      // 是否使用变换跳过模式
       if(pcCU->getTransformSkip(uiAbsPartIdx, compID) != 0)
       {
+        // 变换（跳过模式）
         xTransformSkip( pcResidual, uiStride, m_plTempCoeff, rTu, compID );
       }
       else
       {
         const Int channelBitDepth=pcCU->getSlice()->getSPS()->getBitDepth(toChannelType(compID));
+        // 变换
         xT( channelBitDepth, rTu.useDST(compID), pcResidual, uiStride, m_plTempCoeff, uiWidth, uiHeight, pcCU->getSlice()->getSPS()->getMaxLog2TrDynamicRange(toChannelType(compID)) );
       }
 
@@ -2021,7 +2030,10 @@ Void TComTrQuant::xIT( const Int channelBitDepth, Bool useDST, TCoeff* plCoef, P
   }
 }
 
-/** Wrapper function between HM interface and core 4x4 transform skipping
+/** 
+ * 包装了一下 4x4 变换跳过
+ * 变换跳过模式不会真的变换，只是对残差作个位移
+ * Wrapper function between HM interface and core 4x4 transform skipping
  *  \param piBlkResi input data (residual)
  *  \param uiStride stride of input residual data
  *  \param psCoeff output data (transform coefficients)

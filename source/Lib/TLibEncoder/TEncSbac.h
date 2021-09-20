@@ -62,7 +62,9 @@ class TEncTop;
 // Class definition
 // ====================================================================================================================
 
-/// SBAC encoder class
+/**
+ * SBAC是CABAC的改进
+ **/
 class TEncSbac : public TEncEntropyIf
 {
 public:

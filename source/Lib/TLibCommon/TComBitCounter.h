@@ -51,7 +51,7 @@
 // Class definition
 // ====================================================================================================================
 
-/// class for counting bits
+// 比特流计数器类
 class TComBitCounter : public TComBitIf
 {
 protected:
