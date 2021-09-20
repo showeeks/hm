@@ -488,7 +488,9 @@ const TMatrixCoeff g_as_DST_MAT_4[TRANSFORM_NUMBER_OF_DIRECTIONS][4][4] =
 
 const TMatrixCoeff g_aiT4 [TRANSFORM_NUMBER_OF_DIRECTIONS][4][4]   =
 {
+  // 正向
   DEFINE_DCT4x4_MATRIX  (   64,    83,    36),
+  // 反向
   DEFINE_DCT4x4_MATRIX  (   64,    83,    36)
 };
 

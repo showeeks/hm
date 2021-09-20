@@ -124,7 +124,8 @@ extern const TMatrixCoeff g_as_DST_MAT_4 [TRANSFORM_NUMBER_OF_DIRECTIONS][4][4];
 // Misc.
 // ====================================================================================================================
 
-extern       SChar   g_aucConvertToBit  [ MAX_CU_SIZE+1 ];   // from width to log2(width)-2
+// from width to log2(width)-2
+extern       SChar   g_aucConvertToBit  [ MAX_CU_SIZE+1 ];   
 
 
 #if ENC_DEC_TRACE

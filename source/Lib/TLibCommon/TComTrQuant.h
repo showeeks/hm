@@ -76,7 +76,7 @@ typedef struct
 // Class definition
 // ====================================================================================================================
 
-/// QP struct
+/// 量化参数结构体
 struct QpParam
 {
   Int Qp;
@@ -94,7 +94,7 @@ struct QpParam
 }; // END STRUCT DEFINITION QpParam
 
 
-/// transform and quantization class
+/// 转换和量化类
 class TComTrQuant
 {
 public:
@@ -113,7 +113,9 @@ public:
 #endif
                               );
 
-  // transform & inverse transform functions
+  // 变换和逆变换函数
+
+  // NxN变换
   Void transformNxN(       TComTU         & rTu,
                      const ComponentID      compID,
                            Pel           *  pcResidual,

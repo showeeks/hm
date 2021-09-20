@@ -379,10 +379,12 @@ Void xITr(Int bitDepth, TCoeff *coeff, Pel *block, UInt uiStride, UInt uiTrSize,
 #endif //MATRIX_MULT
 
 
-/** 4x4 forward transform implemented using partial butterfly structure (1D)
- *  \param src   input data (residual)
- *  \param dst   output data (transform coefficients)
- *  \param shift specifies right shift after 1D transform
+/** 
+ *  4x4 前向变换
+ *  4x4 forward transform implemented using partial butterfly structure (1D)
+ *  \param src   输入数据 (残差))
+ *  \param dst   输出数据 (转换系数))
+ *  \param shift 是否在1维变换后向右shift
  *  \param line
  */
 Void partialButterfly4(TCoeff *src, TCoeff *dst, Int shift, Int line)
@@ -409,8 +411,7 @@ Void partialButterfly4(TCoeff *src, TCoeff *dst, Int shift, Int line)
   }
 }
 
-// Fast DST Algorithm. Full matrix multiplication for DST and Fast DST algorithm
-// give identical results
+// 快速DST算法。FDST和完整矩阵乘法版DST会给出相同结果。
 Void fastForwardDst(TCoeff *block, TCoeff *coeff, Int shift)  // input block, output coeff
 {
   Int i;
@@ -859,7 +860,7 @@ Void partialButterflyInverse32(TCoeff *src, TCoeff *dst, Int shift, Int line, co
 */
 Void xTrMxN(Int bitDepth, TCoeff *block, TCoeff *coeff, Int iWidth, Int iHeight, Bool useDST, const Int maxLog2TrDynamicRange)
 {
-  const Int TRANSFORM_MATRIX_SHIFT = g_transformMatrixShift[TRANSFORM_FORWARD];
+  const Int TRANSFORM_MATRIX_SHIFT = g_transformMatrixShift[TRANSFORM_FORWARD]; // =6
 
   const Int shift_1st = ((g_aucConvertToBit[iWidth] + 2) +  bitDepth + TRANSFORM_MATRIX_SHIFT) - maxLog2TrDynamicRange;
   const Int shift_2nd = (g_aucConvertToBit[iHeight] + 2) + TRANSFORM_MATRIX_SHIFT;
@@ -1474,7 +1475,7 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
   if (rdpcmMode == RDPCM_OFF)
   {
     uiAbsSum = 0;
-    //transform and quantise
+    // 转换和量化
     if(pcCU->getCUTransquantBypass(uiAbsPartIdx))
     {
       const Bool rotateResidual = rTu.isNonTransformedResidualRotated(compID);
@@ -1499,7 +1500,7 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
 #endif
 
       assert( (pcCU->getSlice()->getSPS()->getMaxTrSize() >= uiWidth) );
-
+      // 先转换， 将残差用 DCT 转换为频域
       if(pcCU->getTransformSkip(uiAbsPartIdx, compID) != 0)
       {
         xTransformSkip( pcResidual, uiStride, m_plTempCoeff, rTu, compID );
@@ -1514,7 +1515,7 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
       std::cout << g_debugCounter << ": " << uiWidth << "x" << uiHeight << " channel " << compID << " TU between transform and quantiser\n";
       printBlock(m_plTempCoeff, uiWidth, uiHeight, uiWidth);
 #endif
-
+      // 后量化
       xQuant( rTu, m_plTempCoeff, rpcCoeff,
 
 #if ADAPTIVE_QP_SELECTION
@@ -1931,10 +1932,11 @@ Void TComTrQuant::invRdpcmNxN( TComTU& rTu, const ComponentID compID, Pel* pcRes
 
 /**
  * Wrapper function between HM interface and core NxN forward transform (2D)
- * 该函数包装了一下前向变换
- *  \param channelBitDepth bit depth of channel
- *  \param useDST
- *  \param piBlkResi input data (residual)
+ * 
+ * 该函数简单包装了一下前向 nxn 变换
+ *  \param channelBitDepth bit depth of channel 色彩深度
+ *  \param useDST 是否使用 DST
+ *  \param piBlkResi 输入数据 (残差)
  *  \param uiStride stride of input residual data
  *  \param psCoeff output data (transform coefficients) 输出数据(转换系数)
  *  \param iWidth transform width 转换宽度
@@ -3531,4 +3533,3 @@ Void TComTrQuant::crossComponentPrediction(       TComTU      & rTu,
   }
 }
 
-//! \}
