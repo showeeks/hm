@@ -249,8 +249,9 @@ typedef       Short           TFilterCoeff;      ///< filter coefficient
 typedef       Int64           Intermediate_Int;  ///< used as intermediate value in calculations
 typedef       UInt64          Intermediate_UInt; ///< used as intermediate value in calculations
 #else
-// 像素类型
+// 16bit的像素类型
 typedef       Short           Pel;               ///< pixel type
+// 变换系数的数据类型
 typedef       Int             TCoeff;            ///< transform coefficient
 typedef       Short           TMatrixCoeff;      ///< transform matrix coefficient
 typedef       Short           TFilterCoeff;      ///< filter coefficient
@@ -379,7 +380,7 @@ enum RefPicList
   REF_PIC_LIST_X               = 100  ///< special mark
 };
 
-/// distortion function index
+// 失真的计算函数
 enum DFunc
 {
   DF_DEFAULT         = 0,
@@ -514,12 +515,16 @@ enum ScalingListSize
   SCALING_LIST_SIZE_NUM
 };
 
-// Slice / Slice segment encoding modes
+// Slice/Slice segment 编码模式
 enum SliceConstraint
 {
+  // 不使用 slice / slice segments
   NO_SLICES              = 0,          ///< don't use slices / slice segments
+  // 限制一个 slice 中最大 CTU 的数量
   FIXED_NUMBER_OF_CTU    = 1,          ///< Limit maximum number of largest coding tree units in a slice / slice segments
+  // 限制一个 slice 的字节数
   FIXED_NUMBER_OF_BYTES  = 2,          ///< Limit maximum number of bytes in a slice / slice segment
+  // slice, slice segment 张成整数数量个 tiles 
   FIXED_NUMBER_OF_TILES  = 3,          ///< slices / slice segments span an integer number of tiles
   NUMBER_OF_SLICE_CONSTRAINT_MODES = 4
 };

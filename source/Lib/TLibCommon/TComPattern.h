@@ -51,7 +51,7 @@
 class TComDataCU;
 class TComTU;
 
-/// neighbouring pixel access class for all components
+// 提供了相邻像素的访问方法
 class TComPattern
 {
 private:

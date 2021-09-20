@@ -1222,7 +1222,7 @@ struct WPACDCParam
   Int64 iDC;
 };
 
-/// slice header class
+// å­˜æ”¾ Slice çš„æ•°æ®ä¿¡æ¯
 class TComSlice
 {
 
@@ -1231,7 +1231,7 @@ private:
   Bool                       m_saoEnabledFlag[MAX_NUM_CHANNEL_TYPE];
   Int                        m_iPPSId;               ///< picture parameter set ID
   // pic output flag 
-  // Õâ¸ö flag=1 Ê±£¬Êä³ö±ØĞëÔÚ IRAP Ö®Ç°£¬±ØĞëÔÚÒıÓÃIRAPµÄRADLÖ¡Ö®Ç°Êä³ö£¬
+  // ï¿½ï¿½ï¿½ flag=1 Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ IRAP Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IRAPï¿½ï¿½RADLÖ¡Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½
   // 
   Bool                       m_PicOutputFlag;
   Int                        m_iPOC;

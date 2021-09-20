@@ -52,6 +52,7 @@
 
 /**
  * \brief Interpolation filter class
+ * 实现了内插值滤波功能
  */
 class TComInterpolationFilter
 {

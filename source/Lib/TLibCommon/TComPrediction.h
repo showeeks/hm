@@ -65,6 +65,9 @@ typedef enum PRED_BUF_E
 
 static const UInt MAX_INTRA_FILTER_DEPTHS=5;
 
+/**
+ * 实现了预测的功能
+ **/
 class TComPrediction : public TComWeightPrediction
 {
 private:

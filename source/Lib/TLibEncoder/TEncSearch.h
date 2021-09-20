@@ -64,7 +64,7 @@ static const UInt MAX_NUM_REF_LIST_ADAPT_SR=2;
 static const UInt MAX_IDX_ADAPT_SR=33;
 static const UInt NUM_MV_PREDICTORS=3;
 
-/// encoder search class
+// 实现了运动搜索的功能
 class TEncSearch : public TComPrediction
 {
 private:

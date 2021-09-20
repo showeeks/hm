@@ -56,6 +56,9 @@
 
 /// picture class (symbol + YUV buffers)
 
+/**
+ * 图像数据类，包含TComPicYuv和TComPicSym
+ **/
 class TComPic
 {
 public:

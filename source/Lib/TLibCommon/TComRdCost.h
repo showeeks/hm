@@ -107,7 +107,7 @@ public:
   { }
 };
 
-/// RD cost computation class
+// 实现了率失真的计算
 class TComRdCost
 {
 private:

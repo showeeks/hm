@@ -57,7 +57,7 @@ class TEncGOP;
 // Class definition
 // ====================================================================================================================
 
-/// slice encoder class
+// 实现了 Slice 的编码功能
 class TEncSlice
   : public WeightPredAnalysis
 {

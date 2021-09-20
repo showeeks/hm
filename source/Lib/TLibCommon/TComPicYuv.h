@@ -51,7 +51,12 @@
 // Class definition
 // ====================================================================================================================
 
-/// picture YUV buffer class
+// 补充 TComYuv 细节
+
+/**
+ * 图像层级的yuv 数据结构
+ * 用于ALF和去块滤波等处理
+ **/
 class TComPicYuv
 {
 private:
@@ -60,6 +65,7 @@ private:
   //  YUV buffer
   // ------------------------------------------------------------------------------------------------
 
+  // yuv三个分量的信息
   Pel*  m_apiPicBuf[MAX_NUM_COMPONENT];             ///< Buffer (including margin)
 
   Pel*  m_piPicOrg[MAX_NUM_COMPONENT];              ///< m_apiPicBufY + m_iMarginLuma*getStride() + m_iMarginLuma

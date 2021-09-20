@@ -46,6 +46,9 @@
 #include "TLibCommon/TComSlice.h"
 #include <assert.h>
 
+/**
+ * GOP的poc, 参考图像列表
+ **/
 struct GOPEntry
 {
   Int m_POC;
@@ -62,6 +65,7 @@ struct GOPEntry
   Int m_numRefPicsActive;
   SChar m_sliceType;
   Int m_numRefPics;
+  // 参考图像列表
   Int m_referencePics[MAX_NUM_REF_PICS];
   Int m_usedByCurrPic[MAX_NUM_REF_PICS];
   Int m_interRPSPrediction;

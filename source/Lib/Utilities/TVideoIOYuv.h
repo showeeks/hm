@@ -50,7 +50,7 @@ using namespace std;
 // Class definition
 // ====================================================================================================================
 
-/// YUV file I/O class
+// 打开，关闭，读写 YUV 文件
 class TVideoIOYuv
 {
 private:

@@ -61,21 +61,33 @@ class TEncSlice;
 // Class definition
 // ====================================================================================================================
 
-/// CU encoder class
+// 实现了 CU 的编码功能
 class TEncCu
 {
 private:
 
-  TComDataCU**            m_ppcBestCU;      ///< Best CUs in each depth
-  TComDataCU**            m_ppcTempCU;      ///< Temporary CUs in each depth
+  // RDO 过程中所需的临时变量
+  // Best CUs in each depth
+  // 存储每层最优(RD Cost)最小的CU信息
+  TComDataCU**            m_ppcBestCU;
+  // Temporary CUs in each depth
+  // 存储每层CU的信息的临时变量
+  TComDataCU**            m_ppcTempCU;
   UChar                   m_uhTotalDepth;
 
+  // 存储每层最优的预测值
   TComYuv**               m_ppcPredYuvBest; ///< Best Prediction Yuv for each depth
+  // 存储每层最优的残差值
   TComYuv**               m_ppcResiYuvBest; ///< Best Residual Yuv for each depth
+  // 存储每层最优的重建值
   TComYuv**               m_ppcRecoYuvBest; ///< Best Reconstruction Yuv for each depth
+  // 每层预测值的临时变量
   TComYuv**               m_ppcPredYuvTemp; ///< Temporary Prediction Yuv for each depth
+  // 每层残差的临时变量
   TComYuv**               m_ppcResiYuvTemp; ///< Temporary Residual Yuv for each depth
+  // 每层重建的临时变量
   TComYuv**               m_ppcRecoYuvTemp; ///< Temporary Reconstruction Yuv for each depth
+  // 每层对应的原始值
   TComYuv**               m_ppcOrigYuv;     ///< Original Yuv for each depth
 
   //  Data : encoder control

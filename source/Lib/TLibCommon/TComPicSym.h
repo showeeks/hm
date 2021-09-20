@@ -79,7 +79,7 @@ public:
   UInt      getFirstCtuRsAddr      () const              { return m_firstCtuRsAddr; }
 };
 
-/// picture symbol class
+// 图像符号类
 class TComPicSym
 {
 private:

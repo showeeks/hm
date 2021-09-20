@@ -60,8 +60,12 @@ static const UInt NUM_MOST_PROBABLE_MODES=3;
 // Class definition
 // ====================================================================================================================
 
-/// CTU可以以 zig-zag 顺序四叉树的方式存储，所以
+// CTU可以以 zig-zag 顺序四叉树的方式存储，所以
 // https://blog.csdn.net/spark19851210/article/details/8964559 HM 代码整体介绍
+
+/**
+ * 存放CU的数据信息
+ **/
 class TComDataCU
 {
 private:
@@ -77,8 +81,11 @@ private:
   // CU description
   // -------------------------------------------------------------------------------------------------------------------
 
-  UInt          m_ctuRsAddr;                            ///< CTU (also known as LCU) address in a slice (Raster-scan address, as opposed to tile-scan/encoding order).
-  UInt          m_absZIdxInCtu;                         ///< absolute address in a CTU. It's Z scan order
+  // CTU (also known as LCU) address in a slice (Raster-scan address, as opposed to tile-scan/encoding order).
+  // CTU 在 slice 中的地址，in raster scan order
+  UInt          m_ctuRsAddr;                            
+  // CTU中的绝对地址，in Z scan order
+  UInt          m_absZIdxInCtu;
   UInt          m_uiCUPelX;                             ///< CU position in a pixel (X)
   UInt          m_uiCUPelY;                             ///< CU position in a pixel (Y)
   UInt          m_uiNumPartition;                       ///< total number of minimum partitions in a CU
@@ -143,7 +150,8 @@ private:
   Bool          m_bIsMergeAMP;
 #endif
   UChar*        m_puhIntraDir[MAX_NUM_CHANNEL_TYPE];
-  UChar*        m_puhInterDir;                          ///< array of inter directions
+  // 帧间的预测方向
+  UChar*        m_puhInterDir;                         
   SChar*        m_apiMVPIdx[NUM_REF_PIC_LIST_01];       ///< array of motion vector predictor candidates
   SChar*        m_apiMVPNum[NUM_REF_PIC_LIST_01];       ///< array of number of possible motion vectors predictors
   Bool*         m_pbIPCMFlag;                           ///< array of intra_pcm flags
