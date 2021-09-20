@@ -479,6 +479,17 @@ UInt TComPicSym::xCalculateNextCtuRSAddr( UInt currCtuRsAddr )
   return nextCtuRsAddr;
 }
 
+/**
+ * 判断相邻CTU的有效性
+ * \param isLeftAvail 输出（左方有效）
+ * \param isRightAvail 
+ * \param isAboveAvail 
+ * \param isBelowAvail 
+ * \param isAboveLeftAvail 
+ * \param isAboveRightAvail 
+ * \param isBelowLeftAvail 
+ * \param isBelowRightAvail
+ **/
 Void TComPicSym::deriveLoopFilterBoundaryAvailibility(Int ctuRsAddr,
                                                       Bool& isLeftAvail,
                                                       Bool& isRightAvail,

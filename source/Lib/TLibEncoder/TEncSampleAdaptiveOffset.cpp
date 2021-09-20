@@ -236,7 +236,12 @@ Void TEncSampleAdaptiveOffset::initRDOCabacCoder(TEncSbac* pcRDGoOnSbacCoder, TC
   m_pcRDGoOnSbacCoder->store( m_pppcRDSbacCoder[SAO_CABACSTATE_PIC_INIT]);
 }
 
-
+/**
+ * 由于使用了变换量化，高频系数可能出现失真，可能在边缘出现波纹，这称为振铃效应
+ * 对重构曲线中出现的波峰像素添加负值补偿，波谷添加正值补偿
+ * 收集统计信息，判断像素属于边界补偿还是边带补偿
+ * 
+ **/
 Void TEncSampleAdaptiveOffset::SAOProcess(TComPic* pPic, Bool* sliceEnabled, const Double *lambdas, const Bool bTestSAODisableAtPictureLevel, const Double saoEncodingRate, const Double saoEncodingRateChroma, const Bool isPreDBFSamplesUsed )
 {
   TComPicYuv* orgYuv= pPic->getPicYuvOrg();
@@ -248,16 +253,19 @@ Void TEncSampleAdaptiveOffset::SAOProcess(TComPic* pPic, Bool* sliceEnabled, con
   srcYuv->extendPicBorder();
 
   //collect statistics
+  // 收集像素块的统计信息
   getStatistics(m_statData, orgYuv, srcYuv, pPic);
   if(isPreDBFSamplesUsed)
   {
+    // 添加去块滤波的统计信息
     addPreDBFStatistics(m_statData);
   }
 
-  //slice on/off
+  // 判断颜色分量是否需要 SAO
   decidePicParams(sliceEnabled, pPic, saoEncodingRate, saoEncodingRateChroma);
   //block on/off
   SAOBlkParam* reconParams = new SAOBlkParam[m_numCTUsPic]; //temporary parameter buffer for storing reconstructed SAO parameters
+  // 真正开始 SAO 处理
   decideBlkParams(pPic, sliceEnabled, m_statData, srcYuv, resYuv, reconParams, pPic->getPicSym()->getSAOBlkParam(), bTestSAODisableAtPictureLevel, saoEncodingRate, saoEncodingRateChroma);
   delete[] reconParams;
 }
@@ -281,6 +289,14 @@ Void TEncSampleAdaptiveOffset::addPreDBFStatistics(SAOStatData*** blkStats)
   }
 }
 
+/**
+ * 遍历图像的每一个CTU
+ * 对于每一个CTU,调用deriveLoopFilterBoundaryAvailibility判断相邻CTU有效性（是否存在）
+ * 对于每个CTU的每一个颜色分量，调用getBlkStats, 搜集CTU某个分量的像素统计信息
+ * 
+ * 判断像素属于EO的哪个种类/BO的哪个条带
+ * 遍历图像的每一个CTU,对CTU的每个分量调用getBlkStats
+ **/
 Void TEncSampleAdaptiveOffset::getStatistics(SAOStatData*** blkStats, TComPicYuv* orgYuv, TComPicYuv* srcYuv, TComPic* pPic, Bool isCalculatePreDeblockSamples)
 {
   Bool isLeftAvail,isRightAvail,isAboveAvail,isBelowAvail,isAboveLeftAvail,isAboveRightAvail,isBelowLeftAvail,isBelowRightAvail;
@@ -294,6 +310,7 @@ Void TEncSampleAdaptiveOffset::getStatistics(SAOStatData*** blkStats, TComPicYuv
     Int height = (yPos + m_maxCUHeight > m_picHeight)?(m_picHeight- yPos):m_maxCUHeight;
     Int width  = (xPos + m_maxCUWidth  > m_picWidth )?(m_picWidth - xPos):m_maxCUWidth;
 
+    // 判断相邻CTU的有效性
     pPic->getPicSym()->deriveLoopFilterBoundaryAvailibility(ctuRsAddr, isLeftAvail,isRightAvail,isAboveAvail,isBelowAvail,isAboveLeftAvail,isAboveRightAvail,isBelowLeftAvail,isBelowRightAvail);
 
     //NOTE: The number of skipped lines during gathering CTU statistics depends on the slice boundary availabilities.
@@ -318,6 +335,7 @@ Void TEncSampleAdaptiveOffset::getStatistics(SAOStatData*** blkStats, TComPicYuv
       Int  orgStride  = orgYuv->getStride(component);
       Pel* orgBlk     = orgYuv->getAddr(component) + ((yPos >> componentScaleY) * orgStride) + (xPos >> componentScaleX);
 
+      // 搜集一个CTU的某个分量的像素的统计信息
       getBlkStats(component, pPic->getPicSym()->getSPS().getBitDepth(toChannelType(component)), blkStats[ctuRsAddr][component]
                 , srcBlk, orgBlk, srcStride, orgStride, (width  >> componentScaleX), (height >> componentScaleY)
                 , isLeftAvail,  isRightAvail, isAboveAvail, isBelowAvail, isAboveLeftAvail, isAboveRightAvail

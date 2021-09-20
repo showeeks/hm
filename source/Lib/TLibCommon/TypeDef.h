@@ -534,6 +534,9 @@ enum HashType
   NUMBER_OF_HASHTYPES      = 4
 };
 
+/**
+ * 所有的SAO模式
+ **/
 enum SAOMode //mode
 {
   SAO_MODE_OFF = 0,
@@ -542,29 +545,51 @@ enum SAOMode //mode
   NUM_SAO_MODES
 };
 
+/**
+ * SAO merge 模式细分
+ * 参数融合指的是直接使用相邻块的SAO参数
+ **/
 enum SAOModeMergeTypes
 {
+  // 使用左边的块
   SAO_MERGE_LEFT =0,
+  // 使用上边的块的SAO参数
   SAO_MERGE_ABOVE,
   NUM_SAO_MERGE_TYPES
 };
 
-
+/**
+ * SAO New 模式细分
+ * New 模式区别于融合模式，New模式指的是根据自己像素块的特点
+ * 选择自己的参数
+ * EO - 边界模式
+ * BO - 边带模式
+ * EO, BO 的详细分类
+ **/
 enum SAOModeNewTypes
 {
   SAO_TYPE_START_EO =0,
+  // 水平方向
   SAO_TYPE_EO_0 = SAO_TYPE_START_EO,
+  // 90 度方向
   SAO_TYPE_EO_90,
+  // 135 度方向， 从左上角到右下角
   SAO_TYPE_EO_135,
+  // 45 度方向
   SAO_TYPE_EO_45,
 
   SAO_TYPE_START_BO,
+  // 边带补偿类型
+  // 边带补偿有32类
   SAO_TYPE_BO = SAO_TYPE_START_BO,
 
   NUM_SAO_NEW_TYPES
 };
 #define NUM_SAO_EO_TYPES_LOG2 2
 
+/**
+ * 使用 EO 的时候，像素的分类
+ **/
 enum SAOEOClasses
 {
   SAO_CLASS_EO_FULL_VALLEY = 0,
@@ -760,10 +785,16 @@ class TComPicSym;
 
 #define MAX_NUM_SAO_CLASSES  32  //(NUM_SAO_EO_GROUPS > NUM_SAO_BO_GROUPS)?NUM_SAO_EO_GROUPS:NUM_SAO_BO_GROUPS
 
+/**
+ * 一个 CTU 分量的 SAO 参数信息
+ **/
 struct SAOOffset
 {
+  // SAO的模式: 关闭，New(EO, BO), Merge
   SAOMode modeIdc; // NEW, MERGE, OFF
+  // 模式的细分: EO_0, EO_90 等等
   Int typeIdc;     // union of SAOModeMergeTypes and SAOModeNewTypes, depending on modeIdc.
+  // BO带的起始索引
   Int typeAuxInfo; // BO: starting band index
   Int offset[MAX_NUM_SAO_CLASSES];
 
@@ -774,6 +805,9 @@ struct SAOOffset
   const SAOOffset& operator= (const SAOOffset& src);
 };
 
+/**
+ * 一个 CTU 的 SAO 参数信息
+ **/
 struct SAOBlkParam
 {
 
@@ -783,6 +817,7 @@ struct SAOBlkParam
   const SAOBlkParam& operator= (const SAOBlkParam& src);
   SAOOffset& operator[](Int compIdx){ return offsetParam[compIdx];}
 private:
+  // 三个分量的SAO信息
   SAOOffset offsetParam[MAX_NUM_COMPONENT];
 
 };
