@@ -1744,6 +1744,8 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         applyDeblockingFilterMetric(pcPic, uiNumSliceSegments);
       }
     }
+    // inloop 滤波
+    // 完成去块滤波和SAO
     m_pcLoopFilter->loopFilterPic( pcPic );
 
     /////////////////////////////////////////////////////////////////////////////////////////////////// File writing

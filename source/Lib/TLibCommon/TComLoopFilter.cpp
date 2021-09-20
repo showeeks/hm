@@ -124,6 +124,7 @@ Void TComLoopFilter::destroy()
 
 /**
  * 为图片的每个CU都做一次deblocking
+ * 有篇不错的文章可以看看 https://blog.csdn.net/NB_vol_1/article/details/55002755?spm=1001.2014.3001.5501
  - call deblocking function for every CU
  .
  \param  pcPic   picture class (TComPic) pointer
@@ -167,6 +168,7 @@ Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
 
 /**
  * 对每一个CU进行去块滤波
+ * 边界的两边各修正3个像素值
  Deblocking filter process in CU-based (the same function as conventional's)
 
  \param pcCU             指针指向 CTU/CU Pointer to CTU/CU structure
@@ -443,7 +445,8 @@ Void TComLoopFilter::xSetLoopfilterParam( TComDataCU* pcCU, UInt uiAbsZorderIdx 
 }
 
 /**
- * 计算边界强度
+ * 计算边界强度 boundary strength Bs=0, 1, 2
+ * 结果输出到 m_aapucBS[edgeDir][uiAbsPartIdx4x4BlockWithinCtu]
  **/
 Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeDir edgeDir, UInt uiAbsPartIdx4x4BlockWithinCtu )
 {
@@ -469,6 +472,7 @@ Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeD
   }
 
   //-- Set BS for Intra MB : BS = 4 or 3
+  // 如果用了帧内预测，直接最大强度 BS=2
   if ( pcCUP->isIntra(uiPartP) || pcCUQ->isIntra(uiPartQ) )
   {
     uiBs = 2;
@@ -526,6 +530,7 @@ Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeD
           {
             if ( piRefP0 == piRefQ0 )
             {
+              // 判断运动矢量(h或v)差值绝对值是否大于等于4
               uiBs  = ((abs(pcMvQ0.getHor() - pcMvP0.getHor()) >= 4) ||
                        (abs(pcMvQ0.getVer() - pcMvP0.getVer()) >= 4) ||
                        (abs(pcMvQ1.getHor() - pcMvP1.getHor()) >= 4) ||
@@ -553,10 +558,11 @@ Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeD
         }
         else // for all different Ref_Idx
         {
+          // 参考帧不同的情况
           uiBs = 1;
         }
       }
-      else  // pcSlice->isInterP()
+      else  // pcSlice->isInterP() 属于P帧的情况
       {
         Int iRefIdx;
         iRefIdx = pcCUP->getCUMvField(REF_PIC_LIST_0)->getRefIdx(uiPartP);
@@ -575,6 +581,7 @@ Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeD
           pcMvQ0.setZero();
         }
 
+        // 计算运动矢量
         uiBs  = ((piRefP0 != piRefQ0) ||
                  (abs(pcMvQ0.getHor() - pcMvP0.getHor()) >= 4) ||
                  (abs(pcMvQ0.getVer() - pcMvP0.getVer()) >= 4)) ? 1 : 0;
@@ -582,13 +589,19 @@ Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeD
     }   // enf of "if( one of BCBP == 0 )"
   }   // enf of "if( not Intra )"
 
+  // 把边界强度放进数组中保存
   m_aapucBS[edgeDir][uiAbsPartIdx4x4BlockWithinCtu] = uiBs;
 }
 
-
+/**
+ * 对亮度块滤波
+ * 
+ **/
 Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZorderIdx, const UInt uiDepth, const DeblockEdgeDir edgeDir, const Int iEdge  )
 {
+  // 获取指向重建 yuv 的指针
         TComPicYuv *pcPicYuvRec                    = pcCU->getPic()->getPicYuvRec();
+  // yuv 的像素起始地址
         Pel        *piSrc                          = pcPicYuvRec->getAddr(COMPONENT_Y, pcCU->getCtuRsAddr(), uiAbsZorderIdx );
         Pel        *piTmpSrc                       = piSrc;
   const TComSPS    &sps                            = *(pcCU->getSlice()->getSPS());
@@ -596,6 +609,7 @@ Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZo
   const Int         bitDepthLuma                   = sps.getBitDepth(CHANNEL_TYPE_LUMA);
   const Bool        lfCrossSliceBoundaryFlag       = pcCU->getSlice()->getLFCrossSliceBoundaryFlag();
 
+  // 偏移
   Int  iStride = pcPicYuvRec->getStride(COMPONENT_Y);
   Int iQP = 0;
   Int iQP_P = 0;
@@ -634,7 +648,9 @@ Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZo
   for ( UInt iIdx = 0; iIdx < uiNumParts; iIdx++ )
   {
     uiBsAbsIdx = xCalcBsIdx( pcCU, uiAbsZorderIdx, edgeDir, iEdge, iIdx);
+    // 先取出来 BS
     uiBs = m_aapucBS[edgeDir][uiBsAbsIdx];
+    // 如果边界强度 bs 为 0 就根本不需要处理了
     if ( uiBs )
     {
       iQP_Q = pcCU->getQP( uiBsAbsIdx );
@@ -662,6 +678,7 @@ Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZo
 
 
       UInt  uiBlocksInPart = uiPelsInPart / 4 ? uiPelsInPart / 4 : 1;
+      // 计算块边界的纹理度，通过这些内容特性判断是否需要进行滤波操作
       for (UInt iBlkIdx = 0; iBlkIdx<uiBlocksInPart; iBlkIdx ++)
       {
         Int dp0 = xCalcDP( piTmpSrc+iSrcStep*(iIdx*uiPelsInPart+iBlkIdx*4+0), iOffset);
@@ -673,6 +690,7 @@ Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZo
 
         Int dp = dp0 + dp3;
         Int dq = dq0 + dq3;
+        // 最后计算出来的纹理度值
         Int d =  d0 + d3;
 
         if (bPCMFilter || ppsTransquantBypassEnabledFlag)
@@ -686,11 +704,14 @@ Void TComLoopFilter::xEdgeFilterLuma( TComDataCU* const pcCU, const UInt uiAbsZo
           bPartQNoFilter = bPartQNoFilter || (pcCUQ->isLosslessCoded(uiPartQIdx) );
         }
 
+        // 纹理度值越大越不平坦，大到一定程度说明是图像本身的问题
+        // iBeta 是阈值，纹理度值小于 iBeta 才进行滤波
         if (d < iBeta)
         {
           Bool bFilterP = (dp < iSideThreshold);
           Bool bFilterQ = (dq < iSideThreshold);
 
+          // 判断是否需要进行强滤波，判断结果发给 xPelFilterLuma
           Bool sw =  xUseStrongFiltering( iOffset, 2*d0, iBeta, iTc, piTmpSrc+iSrcStep*(iIdx*uiPelsInPart+iBlkIdx*4+0))
           && xUseStrongFiltering( iOffset, 2*d3, iBeta, iTc, piTmpSrc+iSrcStep*(iIdx*uiPelsInPart+iBlkIdx*4+3));
 
@@ -846,7 +867,12 @@ Void TComLoopFilter::xEdgeFilterChroma( TComDataCU* const pcCU, const UInt uiAbs
 }
 
 /**
- - Deblocking for the luminance component with strong or weak filter
+ - 滤波操作 Deblocking for the luminance component with strong or weak filter
+ * 亮度分量：
+ * 强滤波对像素值进行大范围大幅度的修正
+ * 弱滤波对像素值进行小范围小幅度的修正
+ * 色度分量：
+ * 边界强度BS=2时才进行滤波，只有某个块用了帧内预测才会色度分量去块滤波
  .
  \param piSrc           pointer to picture data
  \param iOffset         offset value for picture data
@@ -872,6 +898,7 @@ __inline Void TComLoopFilter::xPelFilterLuma( Pel* piSrc, Int iOffset, Int tc, B
   Pel m7  = piSrc[ iOffset*3];
   Pel m0  = piSrc[-iOffset*4];
 
+  // 选择强滤波
   if (sw)
   {
     piSrc[-iOffset]   = Clip3(m3-2*tc, m3+2*tc, ((m1 + 2*m2 + 2*m3 + 2*m4 + m5 + 4) >> 3));
@@ -954,13 +981,15 @@ __inline Void TComLoopFilter::xPelFilterChroma( Pel* piSrc, Int iOffset, Int tc,
 }
 
 /**
+ * 选择用强滤波器还是弱滤波器
+ * 强滤波器指的是滤波范围更大
  - Decision between strong and weak filter
  .
- \param offset         offset value for picture data
- \param d               d value
- \param beta            beta value
+ \param offset          offset value for picture data
+ \param d               纹理值 d value
+ \param beta            阈值 beta value
  \param tc              tc value
- \param piSrc           pointer to picture data
+ \param piSrc           图片数据指针 pointer to picture data
  */
 __inline Bool TComLoopFilter::xUseStrongFiltering( Int offset, Int d, Int beta, Int tc, Pel* piSrc)
 {

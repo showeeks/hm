@@ -249,6 +249,7 @@ typedef       Short           TFilterCoeff;      ///< filter coefficient
 typedef       Int64           Intermediate_Int;  ///< used as intermediate value in calculations
 typedef       UInt64          Intermediate_UInt; ///< used as intermediate value in calculations
 #else
+// 像素类型
 typedef       Short           Pel;               ///< pixel type
 typedef       Int             TCoeff;            ///< transform coefficient
 typedef       Short           TMatrixCoeff;      ///< transform matrix coefficient
