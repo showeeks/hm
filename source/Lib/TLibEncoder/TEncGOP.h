@@ -71,6 +71,9 @@ class TEncTop;
 // Class definition
 // ====================================================================================================================
 
+/**
+ * GOP结构体
+ */
 class TEncGOP
 {
   class DUData
@@ -109,6 +112,7 @@ private:
   Int                     m_iLastIDR;
   Int                     m_RASPOCforResetEncoder; // an IDR POC number, after which the next POC (in output order) will be reset. If MAX_INT, then no reset is pending.
   Int                     m_iGopSize;
+  // 已编码的图片数量
   Int                     m_iNumPicCoded;
   Bool                    m_bFirst;
   Int                     m_iLastRecoveryPicPOC;

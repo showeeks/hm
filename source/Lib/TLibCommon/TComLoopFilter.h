@@ -58,7 +58,8 @@ private:
   UInt      m_uiNumPartitions;
   UChar*    m_aapucBS[NUM_EDGE_DIR];         ///< Bs for [Ver/Hor][Y/U/V][Blk_Idx]
   Bool*     m_aapbEdgeFilter[NUM_EDGE_DIR];
-  LFCUParam m_stLFCUParam;                   ///< status structure
+  // 去块滤波器的参数 status structure
+  LFCUParam m_stLFCUParam;
 
   Bool      m_bLFCrossTileBoundary;
 
@@ -72,6 +73,9 @@ protected:
   Void xSetEdgefilterTU           ( TComTU &rTu );
   Void xSetEdgefilterPU           ( TComDataCU* pcCU, UInt uiAbsZorderIdx );
   Void xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeDir edgeDir, UInt uiPartIdx );
+  /**
+   * 计算 base unit的索引
+   **/
   UInt xCalcBsIdx                 ( TComDataCU* pcCU, UInt absZIdxInCtu, DeblockEdgeDir edgeDir, Int iEdgeIdx, Int iBaseUnitIdx, const struct TComRectangle *rect=NULL )
   {
     TComPic* const pcPic = pcCU->getPic();

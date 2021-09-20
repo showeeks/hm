@@ -142,20 +142,19 @@ TEncSlice::setUpLambda(TComSlice* slice, const Double dLambda, Int iQP)
 
 
 /**
- - non-referenced frame marking
- - QP computation based on temporal structure
- - lambda computation based on QP
+ - 标记未被引用的帧 non-referenced frame marking
+ - 根据时间结构计算量化参数 QP computation based on temporal structure
+ - 根据量化参数计算 lambda lambda computation based on QP
  - set temporal layer ID and the parameter sets
  .
- \param pcPic         picture class
- \param pocLast       POC of last picture
- \param pocCurr       current POC
- \param iNumPicRcvd   number of received pictures
+ \param pcPic         图片类picture class
+ \param pocLast       上一张图片的 POC 编号POC of last picture
+ \param pocCurr       当前 POC current POC
+ \param iNumPicRcvd   已接受的图片数量 number of received pictures
  \param iGOPid        POC offset for hierarchical structure
- \param rpcSlice      slice header class
+ \param rpcSlice      切片头类 slice header class
  \param isField       true for field coding
  */
-
 Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCurr, const Int iGOPid, TComSlice*& rpcSlice, const Bool isField )
 {
   Double dQP;
@@ -234,7 +233,7 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
   rpcSlice->setSliceType    ( eSliceType );
 
   // ------------------------------------------------------------------------------------------------------------------
-  // Non-referenced frame marking
+  // 标记未被引用的帧 Non-referenced frame marking
   // ------------------------------------------------------------------------------------------------------------------
 
   if(pocLast == 0)

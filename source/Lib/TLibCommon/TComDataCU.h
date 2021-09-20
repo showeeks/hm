@@ -91,10 +91,17 @@ private:
   // CU data
   // -------------------------------------------------------------------------------------------------------------------
 
-  Bool*         m_skipFlag;                             ///< array of skip flags
-  SChar*        m_pePartSize;                           ///< array of partition sizes
+  // array of skip flags
+  // 是否跳过当前 CU
+  Bool*         m_skipFlag;
+  // array of partition sizes
+  // 预测模式，帧内有2Nx2N(整块)和NxN(四分)两种。
+  // 帧间有4种对称模式和4种非对称模式
+  SChar*        m_pePartSize;                         
+  // 0 -> ModeInter 帧间预测模式 1-> ModeIntra 帧内预测模式
   SChar*        m_pePredMode;                           ///< array of prediction modes
   SChar*        m_crossComponentPredictionAlpha[MAX_NUM_COMPONENT]; ///< array of cross-component prediction alpha values
+  // 是否对当前CU进行伸缩，变换和环路滤波
   Bool*         m_CUTransquantBypass;                   ///< array of cu_transquant_bypass flags
   SChar*        m_phQP;                                 ///< array of QP values
   UChar*        m_ChromaQpAdj;                          ///< array of chroma QP adjustments (indexed). when value = 0, cu_chroma_qp_offset_flag=0; when value>0, indicates cu_chroma_qp_offset_flag=1 and cu_chroma_qp_offset_idx=value-1
@@ -128,7 +135,9 @@ private:
   // coding tool information
   // -------------------------------------------------------------------------------------------------------------------
 
+  // 当前PU是否由inter推测得到
   Bool*         m_pbMergeFlag;                          ///< array of merge flags
+  // merge 候选列表中的候选索引
   UChar*        m_puhMergeIndex;                        ///< array of merge candidate indices
 #if AMP_MRG
   Bool          m_bIsMergeAMP;

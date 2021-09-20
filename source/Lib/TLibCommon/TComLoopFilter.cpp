@@ -131,6 +131,9 @@ Void TComLoopFilter::destroy()
 Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
 {
   // 水平过滤
+  // 首先过滤图像中的垂直边界
+  // 从左边界往右边界处理
+  // 获取一帧中的 CU 个数，对CU作处理
   for ( UInt ctuRsAddr = 0; ctuRsAddr < pcPic->getNumberOfCtusInFrame(); ctuRsAddr++ )
   {
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
@@ -143,6 +146,8 @@ Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
   }
 
   // 垂直过滤
+  // 然后过滤图像中的水平边界
+  // 从最顶部向底部处理
   for ( UInt ctuRsAddr = 0; ctuRsAddr < pcPic->getNumberOfCtusInFrame(); ctuRsAddr++ )
   {
     TComDataCU* pCtu = pcPic->getCtu( ctuRsAddr );
@@ -161,11 +166,12 @@ Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
 // ====================================================================================================================
 
 /**
+ * 对每一个CU进行去块滤波
  Deblocking filter process in CU-based (the same function as conventional's)
 
- \param pcCU             Pointer to CTU/CU structure
- \param uiAbsZorderIdx   Position in CU
- \param uiDepth          Depth in CU
+ \param pcCU             指针指向 CTU/CU Pointer to CTU/CU structure
+ \param uiAbsZorderIdx   CU的位置 Position in CU
+ \param uiDepth          CU 的深度 Depth in CU
  \param edgeDir          the direction of the edge in block boundary (horizontal/vertical), which is added newly
 */
 Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiDepth, DeblockEdgeDir edgeDir )
@@ -174,15 +180,19 @@ Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiD
   {
     return;
   }
+  // 获取CU所属的图片
   TComPic* pcPic     = pcCU->getPic();
   UInt uiCurNumParts = pcPic->getNumPartitionsInCtu() >> (uiDepth<<1);
   UInt uiQNumParts   = uiCurNumParts>>2;
   const TComSPS &sps = *(pcCU->getSlice()->getSPS());
 
+  // 如果有子块，对子块递归调用 xDeblockCU 滤波。
+  // 有子块的情况，滤波完直接退出
   if( pcCU->getDepth(uiAbsZorderIdx) > uiDepth )
   {
     for ( UInt uiPartIdx = 0; uiPartIdx < 4; uiPartIdx++, uiAbsZorderIdx+=uiQNumParts )
     {
+      // 左上角的坐标
       UInt uiLPelX   = pcCU->getCUPelX() + g_auiRasterToPelX[ g_auiZscanToRaster[uiAbsZorderIdx] ];
       UInt uiTPelY   = pcCU->getCUPelY() + g_auiRasterToPelY[ g_auiZscanToRaster[uiAbsZorderIdx] ];
       if( ( uiLPelX < sps.getPicWidthInLumaSamples() ) && ( uiTPelY < sps.getPicHeightInLumaSamples() ) )
@@ -193,9 +203,13 @@ Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiD
     return;
   }
 
+  // 判断 CU 的左边，上边边界是否可用，
+  // 相关信息写入 LFCUParam
   xSetLoopfilterParam( pcCU, uiAbsZorderIdx );
   TComTURecurse tuRecurse(pcCU, uiAbsZorderIdx);
+  // 设置TU及TU内部base unit(4x4)的边界是否需要滤波
   xSetEdgefilterTU   ( tuRecurse );
+  // 设置PU及PU内部base unit(4x4)的边界是否需要滤波
   xSetEdgefilterPU   ( pcCU, uiAbsZorderIdx );
 
   const UInt uiPelsInPart = sps.getMaxCUWidth() >> sps.getMaxTotalCUDepth();
@@ -212,8 +226,10 @@ Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiD
       uiBSCheck = 1;
     }
 
+    // 对于需要进行滤波的块，进行边界强度计算
     if ( m_aapbEdgeFilter[edgeDir][uiPartIdx] && uiBSCheck )
     {
+      // 计算边界强度
       xGetBoundaryStrengthSingle ( pcCU, edgeDir, uiPartIdx );
     }
   }
@@ -227,6 +243,7 @@ Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiD
 
   for ( Int iEdge = 0; iEdge < uiSizeInPU ; iEdge+=PartIdxIncr)
   {
+    // 对亮度块的边缘进行滤波
     xEdgeFilterLuma     ( pcCU, uiAbsZorderIdx, uiDepth, edgeDir, iEdge );
     if ( chFmt!=CHROMA_400 && (bAlwaysDoChroma ||
                                (uiPelsInPart>DEBLOCK_SMALLEST_BLOCK) ||
@@ -234,6 +251,7 @@ Void TComLoopFilter::xDeblockCU( TComDataCU* pcCU, UInt uiAbsZorderIdx, UInt uiD
                               )
        )
     {
+      // 对色度块的边缘进行滤波
       xEdgeFilterChroma   ( pcCU, uiAbsZorderIdx, uiDepth, edgeDir, iEdge );
     }
   }
@@ -272,6 +290,10 @@ Void TComLoopFilter::xSetEdgefilterMultiple( TComDataCU*    pcCU,
   }
 }
 
+/**
+ * 根据LFCUParam判断TU及内部base unit是否需要滤波
+ * 包装了一下 xSetEdgefilterMultiple
+ **/
 Void TComLoopFilter::xSetEdgefilterTU(  TComTU &rTu )
 {
   TComDataCU* pcCU  = rTu.getCU();
@@ -297,6 +319,10 @@ Void TComLoopFilter::xSetEdgefilterTU(  TComTU &rTu )
   xSetEdgefilterMultiple( pcCU, rTu.GetAbsPartIdxCU(), uiTransDepthTotal, EDGE_HOR, 0, m_stLFCUParam.bInternalEdge, uiWidthInBaseUnits, uiHeightInBaseUnits, &rect );
 }
 
+/**
+ * 根据LFCUParam判断PU及内部base unit是否需要滤波
+ * 包装了xSetEdgefilterMultiple
+ **/
 Void TComLoopFilter::xSetEdgefilterPU( TComDataCU* pcCU, UInt uiAbsZorderIdx )
 {
   const UInt uiDepth = pcCU->getDepth( uiAbsZorderIdx );
@@ -359,7 +385,9 @@ Void TComLoopFilter::xSetEdgefilterPU( TComDataCU* pcCU, UInt uiAbsZorderIdx )
   }
 }
 
-
+/**
+ * 判断CU的上边，左边边界是否需要滤波
+ **/
 Void TComLoopFilter::xSetLoopfilterParam( TComDataCU* pcCU, UInt uiAbsZorderIdx )
 {
   UInt uiX           = pcCU->getCUPelX() + g_auiRasterToPelX[ g_auiZscanToRaster[ uiAbsZorderIdx ] ];
@@ -414,6 +442,9 @@ Void TComLoopFilter::xSetLoopfilterParam( TComDataCU* pcCU, UInt uiAbsZorderIdx 
   }
 }
 
+/**
+ * 计算边界强度
+ **/
 Void TComLoopFilter::xGetBoundaryStrengthSingle ( TComDataCU* pCtu, DeblockEdgeDir edgeDir, UInt uiAbsPartIdx4x4BlockWithinCtu )
 {
   TComSlice * const pcSlice = pCtu->getSlice();

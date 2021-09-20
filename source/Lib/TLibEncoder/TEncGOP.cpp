@@ -1192,6 +1192,10 @@ printHash(const HashType hashType, const std::string &digestStr)
 // ====================================================================================================================
 
 // 从compressGOP 到 compressSlice http://www.360doc.com/content/18/1205/14/60086591_799479366.shtml
+/**
+ * 处理一个GOP
+ * \param iPOCLast 
+ **/
 Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rcListPic,
                            TComList<TComPicYuv*>& rcListPicYuvRecOut, std::list<AccessUnit>& accessUnitsInGOP,
                            Bool isField, Bool isTff, const InputColourSpaceConversion ip_conversion, const InputColourSpaceConversion snr_conversion, const TEncAnalyze::OutputLogControl &outputLogCtrl )
@@ -1205,6 +1209,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
   pcBitstreamRedirect = new TComOutputBitstream;
   AccessUnit::iterator  itLocationToPushSliceHeaderNALU; // used to store location where NALU containing slice header is to be inserted
 
+  // 初始化GOP, 主要是设置一下 GOP 的图片数量
   xInitGOP( iPOCLast, iNumPicRcvd, isField );
 
   m_iNumPicCoded = 0;
@@ -1228,7 +1233,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     m_pcCfg->setEncodedFlag(iGOPid, false);
   }
 
-  // GOP 内
+  // 遍历GOP
   for ( Int iGOPid=0; iGOPid < m_iGopSize; iGOPid++ )
   {
     if (m_pcCfg->getEfficientFieldIRAPEnabled())
@@ -1344,7 +1349,9 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
       pcSlice->setAssociatedIRAPPOC(m_associatedIRAPPOC);
     }
     // Do decoding refresh marking if any
+    // 设置解码刷新标识位
     pcSlice->decodingRefreshMarking(m_pocCRA, m_bRefreshPending, rcListPic, m_pcCfg->getEfficientFieldIRAPEnabled());
+    // 选择参考图像集
     m_pcEncTop->selectReferencePictureSet(pcSlice, pocCurr, iGOPid);
     if (!m_pcCfg->getEfficientFieldIRAPEnabled())
     {
@@ -1741,6 +1748,9 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
 
     /////////////////////////////////////////////////////////////////////////////////////////////////// File writing
     // Set entropy coder
+    // 设置 CAVLC 熵编码器
+    // 帧或者条带中的数据使用CABAC编码
+    // 参数集用 CAVLC 熵编码
     m_pcEntropyCoder->setEntropyCoder   ( m_pcCavlcCoder );
 
     // write various parameter sets
@@ -1924,6 +1934,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     // cabac_zero_words processing
     cabac_zero_word_padding(pcSlice, pcPic, binCountsInNalUnits, numBytesInVclNalUnits, accessUnit.back()->m_nalUnitData, m_pcCfg->getCabacZeroWordPaddingEnabled());
 
+    // 运动估计编码
     pcPic->compressMotion();
 
     //-- For time output for each slice
@@ -1955,6 +1966,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     
     printHash(m_pcCfg->getDecodedPictureHashSEIType(), digestStr);
 
+    // 码率控制相关的逻辑
     if ( m_pcCfg->getUseRateCtrl() )
     {
       Double avgQP     = m_pcRateCtrl->getRCPic()->calAverageQP();
@@ -1993,6 +2005,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
 
     pcPic->getPicYuvRec()->copyToPic(pcPicYuvRecOut);
 
+    // 设置重建标识
     pcPic->setReconMark   ( true );
     m_bFirst = false;
     m_iNumPicCoded++;
