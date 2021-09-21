@@ -148,13 +148,18 @@ TComSlice::~TComSlice()
 {
 }
 
-
+/**
+ * 初始化 slice 
+ **/
 Void TComSlice::initSlice()
 {
+  // 参考的索引
   for(UInt i=0; i<NUM_REF_PIC_LIST_01; i++)
   {
     m_aiNumRefIdx[i]      = 0;
   }
+
+  // 参考帧是否都来自 list0
   m_colFromL0Flag = true;
 
   m_colRefIdx = 0;
@@ -167,12 +172,15 @@ Void TComSlice::initSlice()
     m_iSliceChromaQpDelta[component] = 0;
   }
 
+  // merge模式的候选数量为5
   m_maxNumMergeCand = MRG_MAX_NUM_CANDS;
 
   m_bFinalized=false;
 
   m_substreamSizes.clear();
+  // 设置CABAC熵编码器为未初始化
   m_cabacInitFlag        = false;
+  // 启用MVP
   m_enableTMVPFlag = true;
 }
 

@@ -1428,6 +1428,10 @@ Bool TEncTop::SPSNeedsWriting(Int spsId)
   return bChanged;
 }
 
+/**
+ * 计算量化参数
+ * \return 当前帧对应的量化参数
+ **/
 Int TEncCfg::getQPForPicture(const UInt gopIndex, const TComSlice *pSlice) const
 {
   const Int lumaQpBDOffset = pSlice->getSPS()->getQpBDOffset(CHANNEL_TYPE_LUMA);
@@ -1444,9 +1448,11 @@ Int TEncCfg::getQPForPicture(const UInt gopIndex, const TComSlice *pSlice) const
     qp = getBaseQP();
 
     // modify QP if a fractional QP was originally specified, cause dQPs to be 0 or 1.
+    // 每一帧在数组中都有一个对应的位置存放量化参数
     const Int* pdQPs = getdQPs();
     if ( pdQPs )
     {
+      // 计算量化参数
       qp += pdQPs[ pSlice->getPOC() ];
     }
 
@@ -1465,6 +1471,7 @@ Int TEncCfg::getQPForPicture(const UInt gopIndex, const TComSlice *pSlice) const
       {
         const GOPEntry &gopEntry=getGOPEntry(gopIndex);
         // adjust QP according to the QP offset for the GOP entry.
+        // 加上对应的偏移
         qp +=gopEntry.m_QPOffset;
 
         // adjust QP according to QPOffsetModel for the GOP entry.

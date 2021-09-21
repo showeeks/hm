@@ -112,6 +112,10 @@ Void TEncSlice::updateLambda(TComSlice* pSlice, Double dQP)
   setUpLambda(pSlice, dLambda, iQP);
 }
 
+
+/**
+ * 
+ **/
 Void
 TEncSlice::setUpLambda(TComSlice* slice, const Double dLambda, Int iQP)
 {
@@ -132,7 +136,9 @@ TEncSlice::setUpLambda(TComSlice* slice, const Double dLambda, Int iQP)
   }
 
 #if RDOQ_CHROMA_LAMBDA
-// for RDOQ
+  // for RDOQ
+  // 设置量化步长
+  // RDOQ 率失真优化的量化
   m_pcTrQuant->setLambdas( dLambdas );
 #else
   m_pcTrQuant->setLambda( dLambda );
@@ -156,23 +162,30 @@ TEncSlice::setUpLambda(TComSlice* slice, const Double dLambda, Int iQP)
  \param iNumPicRcvd   已接受的图片数量 number of received pictures
  \param iGOPid        POC offset for hierarchical structure
  \param rpcSlice      切片头类 slice header class
- \param isField       true for field coding
+ \param isField       是否是场编码 true for field coding
  */
 Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCurr, const Int iGOPid, TComSlice*& rpcSlice, const Bool isField )
 {
   Double dQP;
   Double dLambda;
 
+  // 取出当前帧的第一个slice 
+  // hm中一帧只有一个slice
   rpcSlice = pcPic->getSlice(0);
+  // 设置 slice 的 bit数量
   rpcSlice->setSliceBits(0);
+  // 设置 slice 所属的图像
   rpcSlice->setPic( pcPic );
   rpcSlice->initSlice();
+  // 设置 slice 输出标志
   rpcSlice->setPicOutputFlag( true );
+  // 设置 slice 的 POC
   rpcSlice->setPOC( pocCurr );
   pcPic->setField(isField);
   m_gopID = iGOPid;
 
   // depth computation based on GOP size
+  // 计算深度
   Int depth;
   {
     Int poc = rpcSlice->getPOC();
@@ -185,12 +198,14 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
       poc = poc % m_pcCfg->getGOPSize();   
     }
 
+    // 对于GOP中的第一帧
     if ( poc == 0 )
     {
       depth = 0;
     }
     else
     {
+      // 一般来说GOP的大小（GOP包含的帧数量）是固定的
       Int step = m_pcCfg->getGOPSize();
       depth    = 0;
       for( Int i=step>>1; i>=1; i>>=1 )
@@ -218,17 +233,32 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
   }
 
   // slice type
+  // slice 类型
+  // 可分为 B_SLICE, P_SLICE, I_SLICE
   SliceType eSliceType;
 
+  // 初始的帧类型是 B 帧
   eSliceType=B_SLICE;
   if(!(isField && pocLast == 1) || !m_pcCfg->getEfficientFieldIRAPEnabled())
   {
+    // 如果 isField 是 false 会进到这里来
+
+    // 解码刷新类型
     if(m_pcCfg->getDecodingRefreshType() == 3)
     {
-      eSliceType = (pocLast == 0 || pocCurr % m_pcCfg->getIntraPeriod() == 0             || m_pcGOPEncoder->getGOPSize() == 0) ? I_SLICE : eSliceType;
+      // 判断是否应该把帧类型设置为 I 帧
+
+      // 如果是 GOP 的第一帧
+      eSliceType = (pocLast == 0 
+        // 如果刚好是 I 帧
+        || pocCurr % m_pcCfg->getIntraPeriod() == 0             
+        // 如果GOP的大小为0
+        || m_pcGOPEncoder->getGOPSize() == 0) 
+      ? I_SLICE : eSliceType;
     }
     else
     {
+      // 和上面类似
       eSliceType = (pocLast == 0 || (pocCurr - (isField ? 1 : 0)) % m_pcCfg->getIntraPeriod() == 0 || m_pcGOPEncoder->getGOPSize() == 0) ? I_SLICE : eSliceType;
     }
   }
@@ -241,18 +271,22 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
 
   if(pocLast == 0)
   {
+    // 如果是 GOP 的第一帧，它可以被其他帧参考
+    // non-reference = false
     rpcSlice->setTemporalLayerNonReferenceFlag(false);
   }
   else
   {
     rpcSlice->setTemporalLayerNonReferenceFlag(!m_pcCfg->getGOPEntry(iGOPid).m_refPic);
   }
+  // slice 可以被参考
   rpcSlice->setReferenced(true);
 
   // ------------------------------------------------------------------------------------------------------------------
   // QP setting
   // ------------------------------------------------------------------------------------------------------------------
 
+  // 量化步长
   dQP = m_pcCfg->getQPForPicture(iGOPid, rpcSlice);
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -264,12 +298,14 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
   Double dOrigQP = dQP;
 
   // pre-compute lambda and QP values for all possible QP candidates
+  // 计算所有可能的候选QP和lambda的值
   for ( Int iDQpIdx = 0; iDQpIdx < 2 * m_pcCfg->getDeltaQpRD() + 1; iDQpIdx++ )
   {
     // compute QP value
     dQP = dOrigQP + ((iDQpIdx+1)>>1)*(iDQpIdx%2 ? -1 : 1);
     dLambda = calculateLambda(rpcSlice, iGOPid, depth, dQP, dQP, iQP );
 
+    // 量化步长计算结果存储起来
     m_vdRdPicLambda[iDQpIdx] = dLambda;
     m_vdRdPicQp    [iDQpIdx] = dQP;
     m_viRdPicQp    [iDQpIdx] = iQP;
@@ -309,6 +345,7 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
 
     if(!(isField && pocLast == 1) || !m_pcCfg->getEfficientFieldIRAPEnabled())
     {
+      // 再次设置 slice 的类型
       if(m_pcCfg->getDecodingRefreshType() == 3)
       {
         eSliceType = (pocLast == 0 || (pocCurr)                     % m_pcCfg->getIntraPeriod() == 0 || m_pcGOPEncoder->getGOPSize() == 0) ? I_SLICE : eSliceType;
@@ -328,15 +365,19 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
     iQP = max( -rpcSlice->getSPS()->getQpBDOffset(CHANNEL_TYPE_LUMA), min( MAX_QP, (Int) floor( dQP + 0.5 ) ) );
   }
 
+  // 设置量化参数
   rpcSlice->setSliceQp           ( iQP );
 #if ADAPTIVE_QP_SELECTION
   rpcSlice->setSliceQpBase       ( iQP );
 #endif
+  // 分别设置了亮度、色度的QP
   rpcSlice->setSliceQpDelta      ( 0 );
   rpcSlice->setUseChromaQpAdj( rpcSlice->getPPS()->getPpsRangeExtension().getChromaQpOffsetListEnabledFlag() );
+  // 设置 slice 的参考数组中可用图像的个数
   rpcSlice->setNumRefIdx(REF_PIC_LIST_0,m_pcCfg->getGOPEntry(iGOPid).m_numRefPicsActive);
   rpcSlice->setNumRefIdx(REF_PIC_LIST_1,m_pcCfg->getGOPEntry(iGOPid).m_numRefPicsActive);
 
+  // 是否使用了去块滤波
   if ( m_pcCfg->getDeblockingFilterMetric() )
   {
     rpcSlice->setDeblockingFilterOverrideFlag(true);
@@ -344,6 +385,7 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
     rpcSlice->setDeblockingFilterBetaOffsetDiv2( 0 );
     rpcSlice->setDeblockingFilterTcOffsetDiv2( 0 );
   }
+  // 如果未使用去块滤波，但是PPS中有去块滤波标志
   else if (rpcSlice->getPPS()->getDeblockingFilterControlPresentFlag())
   {
     rpcSlice->setDeblockingFilterOverrideFlag( rpcSlice->getPPS()->getDeblockingFilterOverrideEnabledFlag() );
@@ -370,16 +412,23 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
     rpcSlice->setDeblockingFilterTcOffsetDiv2( 0 );
   }
 
+  // slice 的深度
   rpcSlice->setDepth            ( depth );
 
+  // 设置图像所属的时域层
   pcPic->setTLayer( temporalId );
+
+  // 如果是 I 帧它所属的层是0层
   if(eSliceType==I_SLICE)
   {
     pcPic->setTLayer(0);
   }
+  // 设置 slice 所属的层
   rpcSlice->setTLayer( pcPic->getTLayer() );
 
+  // 设置图像的预测图像缓冲
   pcPic->setPicYuvPred( &m_picYuvPred );
+  // 设置图像的残差图像缓冲
   pcPic->setPicYuvResi( &m_picYuvResi );
   rpcSlice->setSliceMode            ( m_pcCfg->getSliceMode()            );
   rpcSlice->setSliceArgument        ( m_pcCfg->getSliceArgument()        );
@@ -388,7 +437,9 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
   rpcSlice->setMaxNumMergeCand      ( m_pcCfg->getMaxNumMergeCand()      );
 }
 
-
+/**
+ * 计算lambda
+ **/
 Double TEncSlice::calculateLambda( const TComSlice* slice,
                                    const Int        GOPid, // entry in the GOP table
                                    const Int        depth, // slice GOP hierarchical depth.
@@ -398,7 +449,9 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
 {
   enum   SliceType eSliceType    = slice->getSliceType();
   const  Bool      isField       = slice->getPic()->isField();
+  // B帧的数量
   const  Int       NumberBFrames = ( m_pcCfg->getGOPSize() - 1 );
+  // QP偏移
   const  Int       SHIFT_QP      = 12;
   const Int temporalId=m_pcCfg->getGOPEntry(GOPid).m_temporalId;
   const std::vector<Double> &intraLambdaModifiers=m_pcCfg->getIntraLambdaModifier();
@@ -410,6 +463,8 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
 #endif
   Double qp_temp = dQP + bitdepth_luma_qp_scale - SHIFT_QP;
   // Case #1: I or P-slices (key-frame)
+  // 第一种情况：I帧或者P帧（关键帧）
+  // QP因子
   Double dQPFactor = m_pcCfg->getGOPEntry(GOPid).m_QPFactor;
   if ( eSliceType==I_SLICE )
   {
@@ -425,6 +480,7 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
       }
       else
       {
+        // dLambda_scale == 1
         Double dLambda_scale = 1.0 - Clip3( 0.0, 0.5, 0.05*(Double)(isField ? NumberBFrames/2 : NumberBFrames) );
         dQPFactor=0.57*dLambda_scale;
       }

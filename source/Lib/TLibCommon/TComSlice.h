@@ -1030,12 +1030,15 @@ public:
 };
 
 
-/// PPS class
+/**
+ * 存放PPS的数据
+ **/
 class TComPPS
 {
 private:
-  // 
+  // 当前激活的PPS的ID号， 0-63
   Int              m_PPSId;                    // pic_parameter_set_id
+  // 当前激活的SPS的ID号，0-15
   Int              m_SPSId;                    // seq_parameter_set_id
   Int              m_picInitQPMinus26;
   Bool             m_useDQP;
@@ -1045,18 +1048,25 @@ private:
   // access channel
   UInt             m_uiMaxCuDQPDepth;
 
+  // 色度分量 Cb 和 Cr 分别采用的量化参数，相对于亮度分量的量化参数的偏移量，范围[-12, +12]
   Int              m_chromaCbQpOffset;
   Int              m_chromaCrQpOffset;
 
   UInt             m_numRefIdxL0DefaultActive;
   UInt             m_numRefIdxL1DefaultActive;
 
+  // P Slice 是否使用加权预测
   Bool             m_bUseWeightPred;                    //!< Use of Weighting Prediction (P_SLICE)
+  // B Slice 是否使用双向加权预测
   Bool             m_useWeightedBiPred;                 //!< Use of Weighting Bi-Prediction (B_SLICE)
+  // 是否存在syntax元素pic_output_flag, 影响解码图像的输出和移除
   Bool             m_OutputFlagPresentFlag;             //!< Indicates the presence of output_flag in slice header
+  // 是否存在 cu_transquant_bypass_flag
+  // cu_transquant_bypass_flag 用于判断是否为 transquant_bypass 模式，是否跳过伸缩变换和环路滤波过程
   Bool             m_TransquantBypassEnabledFlag;       //!< Indicates presence of cu_transquant_bypass_flag in CUs.
   Bool             m_useTransformSkip;
   Bool             m_dependentSliceSegmentsEnabledFlag; //!< Indicates the presence of dependent slices
+  // 是否使用tile模式
   Bool             m_tilesEnabledFlag;                  //!< Indicates the presence of tiles
   Bool             m_entropyCodingSyncEnabledFlag;      //!< Indicates the presence of wavefronts
 
@@ -1067,8 +1077,10 @@ private:
   std::vector<Int> m_tileColumnWidth;
   std::vector<Int> m_tileRowHeight;
 
+  // 是否不允许使用符号位隐藏技术
   Bool             m_signDataHidingEnabledFlag;
 
+  // 用来判断在 CABAC 中使用何种方法来确定上下文变量的初始值
   Bool             m_cabacInitPresentFlag;
 
   Bool             m_sliceHeaderExtensionPresentFlag;
@@ -1082,6 +1094,7 @@ private:
   TComScalingList  m_scalingList;                       //!< ScalingList class
   Bool             m_listsModificationPresentFlag;
   UInt             m_log2ParallelMergeLevelMinus2;
+  // =0，RBSP 中没有额外的Slice头比特
   Int              m_numExtraSliceHeaderBits;
 
   TComPPSRExt      m_ppsRangeExtension;

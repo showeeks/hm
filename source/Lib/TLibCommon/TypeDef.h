@@ -285,10 +285,17 @@ enum RDPCMSignallingMode
 };
 
 /// supported slice type
+// 所有 slice 类型
 enum SliceType
 {
+  // 在 P_SLICE 的基础上，CU也可以使用帧间预测，PB可以使用至多两个运动补偿预测信息
+  // B Slice 可以使用图像参考列表 list0 list1
   B_SLICE               = 0,
+  // 在I_SLICE基础上，允许使用帧间预测
+  // PB使用至多一个运动补偿预测信息，
+  // 只使用图像参考列表 list0
   P_SLICE               = 1,
+  // 所有CTU都是intra帧内预测类型
   I_SLICE               = 2,
   NUMBER_OF_SLICE_TYPES = 3
 };
