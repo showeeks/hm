@@ -620,8 +620,12 @@ namespace Profile
   enum Name
   {
     NONE = 0,
+    // 支持8bit位深，4:2:0的采样格式，是最常见的档次
     MAIN = 1,
+    // 支持 10bit像素深度
     MAIN10 = 2,
+    // 不支持帧间预测
+    // 支持单个静止图像，按照 Main 档次的规定进行编码
     MAINSTILLPICTURE = 3,
     MAINREXT = 4,
     HIGHTHROUGHPUTREXT = 5
@@ -630,7 +634,8 @@ namespace Profile
 
 namespace Level
 {
-  enum Tier
+  enum 
+  Tier
   {
     MAIN = 0,
     HIGH = 1,

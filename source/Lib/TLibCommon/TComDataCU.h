@@ -122,7 +122,7 @@ private:
   TCoeff*       m_pcArlCoeff[MAX_NUM_COMPONENT];        ///< ARL coefficient buffer (0->Y, 1->Cb, 2->Cr)
   Bool          m_ArlCoeffIsAliasedAllocation;          ///< ARL coefficient buffer is an alias of the global buffer and must not be free()'d
 #endif
-
+  // PCM模式亮度和色度像素值
   Pel*          m_pcIPCMSample[MAX_NUM_COMPONENT];      ///< PCM sample buffer (0->Y, 1->Cb, 2->Cr)
 
   // -------------------------------------------------------------------------------------------------------------------
@@ -154,6 +154,7 @@ private:
   UChar*        m_puhInterDir;                         
   SChar*        m_apiMVPIdx[NUM_REF_PIC_LIST_01];       ///< array of motion vector predictor candidates
   SChar*        m_apiMVPNum[NUM_REF_PIC_LIST_01];       ///< array of number of possible motion vectors predictors
+  // 当前CU是否使用了PCM模式
   Bool*         m_pbIPCMFlag;                           ///< array of intra_pcm flags
 #if MCTS_ENC_CHECK
   Bool          m_tMctsMvpIsValid;

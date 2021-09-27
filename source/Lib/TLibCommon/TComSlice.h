@@ -750,7 +750,9 @@ private:
   UInt             m_picWidthInLumaSamples;
   UInt             m_picHeightInLumaSamples;
 
+  // pcm 模式下编码单元的最小尺寸
   Int              m_log2MinCodingBlockSize;
+  // pcm 模式下编码单元最大最小尺寸的差异
   Int              m_log2DiffMaxMinCodingBlockSize;
   UInt             m_uiMaxCUWidth;
   UInt             m_uiMaxCUHeight;
@@ -768,6 +770,7 @@ private:
   UInt             m_uiQuadtreeTULog2MinSize;
   UInt             m_uiQuadtreeTUMaxDepthInter;
   UInt             m_uiQuadtreeTUMaxDepthIntra;
+  // 当前视频序列是否使用 PCM 模式
   Bool             m_usePCM;
   UInt             m_pcmLog2MaxSize;
   UInt             m_uiPCMLog2MinSize;
@@ -776,6 +779,7 @@ private:
   // Parameter
   BitDepths        m_bitDepths;
   Int              m_qpBDOffset[MAX_NUM_CHANNEL_TYPE];
+  // PCM模式下亮度、色度像素值所需的比特数
   Int              m_pcmBitDepths[MAX_NUM_CHANNEL_TYPE];
   Bool             m_bPCMFilterDisableFlag;
 
@@ -1087,6 +1091,7 @@ private:
   Bool             m_loopFilterAcrossSlicesEnabledFlag;
   Bool             m_deblockingFilterControlPresentFlag;
   Bool             m_deblockingFilterOverrideEnabledFlag;
+  // 是否对使用了 PCM 模式的 CU 进行去块滤波和SAO技术
   Bool             m_ppsDeblockingFilterDisabledFlag;
   Int              m_deblockingFilterBetaOffsetDiv2;    //< beta offset for deblocking filter
   Int              m_deblockingFilterTcOffsetDiv2;      //< tc offset for deblocking filter
