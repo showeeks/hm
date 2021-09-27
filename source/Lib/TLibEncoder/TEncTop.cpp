@@ -1265,21 +1265,40 @@ Void TEncTop::xInitRPS(TComSPS &sps, Bool isFieldCoding)
    // This is a function that
    // determines what Reference Picture Set to use
    // for a specific slice (with POC = POCCurr)
+
+/**
+ * 为当前帧选择一个参考图像集，最多可以有9个
+ * 全部放在SPS中，通过索引获得
+ * 
+ * 默认把当前帧在当前GOP中的相对POC设置为参考图像集的索引
+ * 
+ * \param POCCurr 该帧的绝对POC
+ * \param GOPid 该帧在GOP中的相对POC
+ **/
 Void TEncTop::selectReferencePictureSet(TComSlice* slice, Int POCCurr, Int GOPid )
 {
+  // 设置默认的参考集的索引
   slice->setRPSidx(GOPid);
 
+  // 对于额外的RPS
   for(Int extraNum=m_iGOPSize; extraNum<m_extraRPSs+m_iGOPSize; extraNum++)
   {
+    // 如果 I 帧的周期大于 0
     if(m_uiIntraPeriod > 0 && getDecodingRefreshType() > 0)
     {
+      // 当前帧的POC对IntraPeriod 求余
+      // 求余之后就是 IntraPeriod 周期内的相对 POC
       Int POCIndex = POCCurr%m_uiIntraPeriod;
       if(POCIndex == 0)
       {
         POCIndex = m_uiIntraPeriod;
       }
+      // 如果当前帧的 POC 对 I 帧周期求余等于 m_GOPList 某个元素的 GOP
+      // 就把这个元素的指标设置为RPS的索引
       if(POCIndex == m_GOPList[extraNum].m_POC)
       {
+        // 如果 IntraPeriod 周期内的相对 POC 刚好等于额外参考集的 POC 
+        // 那么就把这个额外的参考集选为参考集
         slice->setRPSidx(extraNum);
       }
     }

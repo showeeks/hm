@@ -1275,44 +1275,60 @@ Int TComSlice::checkThatAllRefPicsAreAvailable( TComList<TComPic*>& rcListPic, c
 
 /** Function for constructing an explicit Reference Picture Set out of the available pictures in a referenced Reference Picture Set
 */
+/**
+ * 明确地创建一个参考图像集（从参考图像中）
+ * 
+ **/
 Void TComSlice::createExplicitReferencePictureSetFromReference( TComList<TComPic*>& rcListPic, const TComReferencePictureSet *pReferencePictureSet, Bool isRAP, Int pocRandomAccess, Bool bUseRecoveryPoint, const Bool bEfficientFieldIRAPEnabled)
 {
   TComPic* rpcPic;
   Int i, j;
+  // 参考图像的计数
   Int k = 0;
+  // 前向参考帧的数量
   Int nrOfNegativePictures = 0;
+  // 后向参考帧的数量
   Int nrOfPositivePictures = 0;
+  // 当前帧的RPS
   TComReferencePictureSet* pLocalRPS = this->getLocalRPS();
   (*pLocalRPS)=TComReferencePictureSet();
 
   Bool irapIsInRPS = false; // Used when bEfficientFieldIRAPEnabled==true
 
   // loop through all pictures in the Reference Picture Set
+  // 遍历RPS中的所有图片
   for(i=0;i<pReferencePictureSet->getNumberOfPictures();i++)
   {
     j = 0;
     // loop through all pictures in the reference picture buffer
+    // 遍历
     TComList<TComPic*>::iterator iterPic = rcListPic.begin();
     while ( iterPic != rcListPic.end())
     {
       j++;
       rpcPic = *(iterPic++);
-
+      // 该条件成立表示找到了参考图像
+      // 在图像列表中找到了当前片的参考图像
       if(rpcPic->getPicSym()->getSlice(0)->getPOC() == this->getPOC() + pReferencePictureSet->getDeltaPOC(i) && rpcPic->getSlice(0)->isReferenced())
       {
         // This picture exists as a reference picture
         // and should be added to the explicit Reference Picture Set
+        // 设置第 k 个图像的相对 POC
         pLocalRPS->setDeltaPOC(k, pReferencePictureSet->getDeltaPOC(i));
+        // 设置该参考图像是否允许被使用
         pLocalRPS->setUsed(k, pReferencePictureSet->getUsed(i) && (!isRAP));
         if (bEfficientFieldIRAPEnabled)
         {
           pLocalRPS->setUsed(k, pLocalRPS->getUsed(k) && !(bUseRecoveryPoint && this->getPOC() > pocRandomAccess && this->getPOC() + pReferencePictureSet->getDeltaPOC(i) < pocRandomAccess) );
         }
 
+        // 如果相对POC小于0，表示是前向参考
         if(pLocalRPS->getDeltaPOC(k) < 0)
         {
+          // 统计前向参考帧的数量
           nrOfNegativePictures++;
         }
+        // 相对POC大于0，表示是后向参考
         else
         {
           if(bEfficientFieldIRAPEnabled && rpcPic->getPicSym()->getSlice(0)->getPOC() == this->getAssociatedIRAPPOC() && this->getAssociatedIRAPPOC() == this->getPOC()+1)
@@ -1325,7 +1341,7 @@ Void TComSlice::createExplicitReferencePictureSetFromReference( TComList<TComPic
       }
     }
   }
-
+  // 是否使用新的参考图像集
   Bool useNewRPS = false;
   // if current picture is complimentary field associated to IRAP, add the IRAP to its RPS. 
   if(bEfficientFieldIRAPEnabled && m_pcPic->isField() && !irapIsInRPS)
@@ -1344,32 +1360,47 @@ Void TComSlice::createExplicitReferencePictureSetFromReference( TComList<TComPic
       }
     }
   }
+  // 设置前向参考帧的数量，后向参考帧的数量，及其参考帧的总数
   pLocalRPS->setNumberOfNegativePictures(nrOfNegativePictures);
   pLocalRPS->setNumberOfPositivePictures(nrOfPositivePictures);
   pLocalRPS->setNumberOfPictures(nrOfNegativePictures+nrOfPositivePictures);
   // This is a simplistic inter rps example. A smarter encoder will look for a better reference RPS to do the
   // inter RPS prediction with.  Here we just use the reference used by pReferencePictureSet.
   // If pReferencePictureSet is not inter_RPS_predicted, then inter_RPS_prediction is for the current RPS also disabled.
+  
+  // 如果是帧内预测
   if (!pReferencePictureSet->getInterRPSPrediction() || useNewRPS )
   {
     pLocalRPS->setInterRPSPrediction(false);
     pLocalRPS->setNumRefIdc(0);
   }
+  // 如果是帧间预测
   else
   {
+    // RPS的索引，以传进来的RPS为基础，得到当前RPS的相对索引
     Int rIdx =  this->getRPSidx() - pReferencePictureSet->getDeltaRIdxMinus1() - 1;
+    // 相对的RPS
     Int deltaRPS = pReferencePictureSet->getDeltaRPS();
+    // 根据RPS的索引得到参考图像集
+    // RPS可能有多个，存放在SPS的列表中，这个得到的图像集就是当前 slice 的RPS
     const TComReferencePictureSet* pcRefRPS = this->getSPS()->getRPSList()->getReferencePictureSet(rIdx);
+    // 得到参考图像集中图像的数量
     Int iRefPics = pcRefRPS->getNumberOfPictures();
     Int iNewIdc=0;
+    // 对参考图像集的每一个图像
     for(i=0; i<= iRefPics; i++)
     {
+      // 得到相对的 POC
       Int deltaPOC = ((i != iRefPics)? pcRefRPS->getDeltaPOC(i) : 0);  // check if the reference abs POC is >= 0
       Int iRefIdc = 0;
+
+      // 遍历本地的RPS的每一帧图像
       for (j=0; j < pLocalRPS->getNumberOfPictures(); j++) // loop through the  pictures in the new RPS
       {
+        // 如果本RPS的某一帧和SPS的RPS中的某一帧匹配
         if ( (deltaPOC + deltaRPS) == pLocalRPS->getDeltaPOC(j))
         {
+          // 如果该帧可以被参考
           if (pLocalRPS->getUsed(j))
           {
             iRefIdc = 1;

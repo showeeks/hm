@@ -1258,6 +1258,8 @@ private:
   NalUnitType                m_iAssociatedIRAPType;
   const TComReferencePictureSet* m_pRPS;             //< pointer to RPS, either in the SPS or the local RPS in the same slice header
   TComReferencePictureSet    m_localRPS;             //< RPS when present in slice header
+  // SPS中使用的RPS指标
+  // -1 表示使用 slice header 中的RPS
   Int                        m_rpsIdx;               //< index of used RPS in the SPS or -1 for local RPS in the slice header
   TComRefPicListModification m_RefPicListModification;
   NalUnitType                m_eNalUnitType;         ///< Nal unit type for the slice
