@@ -1363,6 +1363,7 @@ Void TComDataCU::getAllowedChromaDir( UInt uiAbsPartIdx, UInt uiModeList[NUM_CHR
 */
 Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM_MOST_PROBABLE_MODES], const ComponentID compID, Int* piMode ) const
 {
+  // 左边和上面的块最matter
   UInt        LeftPartIdx  = MAX_UINT;
   UInt        AbovePartIdx = MAX_UINT;
   Int         iLeftIntraDir, iAboveIntraDir;
@@ -1372,6 +1373,7 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
   const ChannelType chType = toChannelType(compID);
   const ChromaFormat chForm = getPic()->getChromaFormat();
   // Get intra direction of left PU
+  // 左边PU的帧内预测模式
   const TComDataCU *pcCULeft = getPULeft( LeftPartIdx, m_absZIdxInCtu + uiAbsPartIdx );
 
   if (isChroma(compID))
@@ -1381,6 +1383,7 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
   iLeftIntraDir  = pcCULeft ? ( pcCULeft->isIntra( LeftPartIdx ) ? pcCULeft->getIntraDir( chType, LeftPartIdx ) : DC_IDX ) : DC_IDX;
 
   // Get intra direction of above PU
+  // 上面PU的帧内预测模式
   const TComDataCU *pcCUAbove = getPUAbove( AbovePartIdx, m_absZIdxInCtu + uiAbsPartIdx, true, true );
 
   if (isChroma(compID))
@@ -1402,6 +1405,9 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
   }
 
   assert (2<NUM_MOST_PROBABLE_MODES);
+  // 如果两个模式相等
+  // 如果都是planar/DC, 那么首选planar, 备选DC和26
+  // 如果都是ang模式，那么首先左边块，次选左边块的相邻块模式
   if(iLeftIntraDir == iAboveIntraDir)
   {
     if( piMode )

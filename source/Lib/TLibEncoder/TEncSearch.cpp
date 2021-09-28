@@ -2356,6 +2356,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
+        // ==== 模式的预测  ====
         // 预测模式列表
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
 
