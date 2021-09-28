@@ -1415,12 +1415,14 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
       *piMode = 1;
     }
 
+    // 如果都是ang模式，那么首先左边块，次选左边块的相邻块模式
     if (iLeftIntraDir > 1) // angular modes
     {
       uiIntraDirPred[0] = iLeftIntraDir;
       uiIntraDirPred[1] = ((iLeftIntraDir + 29) % 32) + 2;
       uiIntraDirPred[2] = ((iLeftIntraDir - 1 ) % 32) + 2;
     }
+    // 如果都是planar/DC, 那么首选planar, 备选DC和26
     else //non-angular
     {
       uiIntraDirPred[0] = PLANAR_IDX;
@@ -1428,6 +1430,7 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
       uiIntraDirPred[2] = VER_IDX;
     }
   }
+  // 如果两个模式不相同，那么首先左边块模式，次选上边块模式，最后一个分情况判断
   else
   {
     if( piMode )
@@ -1437,12 +1440,14 @@ Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM
     uiIntraDirPred[0] = iLeftIntraDir;
     uiIntraDirPred[1] = iAboveIntraDir;
 
+    // 如果这俩都不是planar模式，那么最后一个选项是planar
     if (iLeftIntraDir && iAboveIntraDir ) //both modes are non-planar
     {
       uiIntraDirPred[2] = PLANAR_IDX;
     }
     else
     {
+      // 如果两个都不是DC模式，那么最后一个选项是DC,否则是垂直模式
       uiIntraDirPred[2] =  (iLeftIntraDir+iAboveIntraDir)<2? VER_IDX : DC_IDX;
     }
   }

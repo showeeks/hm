@@ -1126,6 +1126,15 @@ UInt TEncSearch::xGetIntraBitsQTChroma(TComTU &rTu,
   return uiBits;
 }
 
+/**
+ * CU的预测、变换、量化
+ * 
+ * 帧内预测的一整套流程：预测、变换量化、反变换反量化、重建像素
+ * 被xRecurIntraCoding调用
+ * 
+ * \param compId 分量编号
+ * \param default0Save1Load2 控制预测像素的生成方式
+ **/
 Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
                                             TComYuv*    pcPredYuv,
                                             TComYuv*    pcResiYuv,
@@ -1149,25 +1158,34 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   const TComSPS       &sps              = *(pcCU->getSlice()->getSPS());
 
   const UInt           uiTrDepth        = rTu.GetTransformDepthRelAdj(compID);
+  // 获取深度
   const UInt           uiFullDepth      = rTu.GetTransformDepthTotal();
   const UInt           uiLog2TrSize     = rTu.GetLog2LumaTrSize();
   const ChromaFormat   chFmt            = pcOrgYuv->getChromaFormat();
   const ChannelType    chType           = toChannelType(compID);
   const Int            bitDepth         = sps.getBitDepth(chType);
 
+  // 获取宽高
   const UInt           uiWidth          = rect.width;
   const UInt           uiHeight         = rect.height;
+  // 获取偏移
   const UInt           uiStride         = pcOrgYuv ->getStride (compID);
+  // 原始的像素地址
         Pel           *piOrg            = pcOrgYuv ->getAddr( compID, uiAbsPartIdx );
+        // 预测的像素地址
         Pel           *piPred           = pcPredYuv->getAddr( compID, uiAbsPartIdx );
+        // 残差的像素地址
         Pel           *piResi           = pcResiYuv->getAddr( compID, uiAbsPartIdx );
+        // 重建的像素地址
         Pel           *piReco           = pcPredYuv->getAddr( compID, uiAbsPartIdx );
   const UInt           uiQTLayer        = sps.getQuadtreeTULog2MaxSize() - uiLog2TrSize;
         Pel           *piRecQt          = m_pcQTTempTComYuv[ uiQTLayer ].getAddr( compID, uiAbsPartIdx );
   const UInt           uiRecQtStride    = m_pcQTTempTComYuv[ uiQTLayer ].getStride(compID);
+  // Z 扫描的顺序
   const UInt           uiZOrder         = pcCU->getZorderIdxInCtu() + uiAbsPartIdx;
         Pel           *piRecIPred       = pcCU->getPic()->getPicYuvRec()->getAddr( compID, pcCU->getCtuRsAddr(), uiZOrder );
         UInt           uiRecIPredStride = pcCU->getPic()->getPicYuvRec()->getStride  ( compID );
+        // 系数（实际是一个int数组）
         TCoeff        *pcCoeff          = m_ppcQTTempCoeff[compID][uiQTLayer] + rTu.getCoefficientOffset(compID);
         Bool           useTransformSkip = pcCU->getTransformSkip(uiAbsPartIdx, compID);
 
@@ -1175,6 +1193,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
         TCoeff        *pcArlCoeff       = m_ppcQTTempArlCoeff[compID][ uiQTLayer ] + rTu.getCoefficientOffset(compID);
 #endif
 
+  // 获取预测模式
   const UInt           uiChPredMode     = pcCU->getIntraDir( chType, uiAbsPartIdx );
   const UInt           partsPerMinCU    = 1<<(2*(sps.getMaxTotalCUDepth() - sps.getLog2DiffMaxMinCodingBlockSize()));
   const UInt           uiChCodedMode    = (uiChPredMode==DM_CHROMA_IDX && !bIsLuma) ? pcCU->getIntraDir(CHANNEL_TYPE_LUMA, getChromasCorrespondingPULumaIdx(uiAbsPartIdx, chFmt, partsPerMinCU)) : uiChPredMode;
@@ -1197,6 +1216,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   DEBUG_STRING_NEW(sTemp)
 
 #if !DEBUG_STRING
+// 控制预测像素的生成方式
   if( default0Save1Load2 != 2 )
 #endif
   {
@@ -1205,9 +1225,11 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
     initIntraPatternChType( rTu, compID, bUseFilteredPredictions DEBUG_STRING_PASS_INTO(sDebug) );
 
     //===== get prediction signal =====
+    // 预测操作
     predIntraAng( compID, uiChFinalMode, piOrg, uiStride, piPred, uiStride, rTu, bUseFilteredPredictions );
 
     // save prediction
+    // 保存预测信息
     if( default0Save1Load2 == 1 )
     {
       Pel*  pPred   = piPred;
@@ -1227,6 +1249,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   else
   {
     // load prediction
+    // 直接计算预测值
     Pel*  pPred   = piPred;
     Pel*  pPredBuf = m_pSharedPredTransformSkip[compID];
     Int k = 0;
@@ -1244,6 +1267,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   //===== get residual signal =====
   {
     // get residual
+    // 计算残差
     Pel*  pOrg    = piOrg;
     Pel*  pPred   = piPred;
     Pel*  pResi   = piResi;
@@ -1252,6 +1276,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
     {
       for( UInt uiX = 0; uiX < uiWidth; uiX++ )
       {
+        // 此处计算残差数据
         pResi[ uiX ] = pOrg[ uiX ] - pPred[ uiX ];
       }
 
@@ -1279,9 +1304,12 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
 
   //===== transform and quantization =====
   //--- init rate estimation arrays for RDOQ ---
+  // 变换和量化
+  // 是否跳过变换操作
   if( useTransformSkip ? m_pcEncCfg->getUseRDOQTS() : m_pcEncCfg->getUseRDOQ() )
   {
     COEFF_SCAN_TYPE scanType = COEFF_SCAN_TYPE(pcCU->getCoefScanIdx(uiAbsPartIdx, uiWidth, uiHeight, compID));
+    // 比特数估计
     m_pcEntropyCoder->estimateBit( m_pcTrQuant->m_pcEstBitsSbac, uiWidth, uiHeight, chType, scanType );
   }
 
@@ -1298,6 +1326,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   m_pcTrQuant->selectLambda     (compID);
 #endif
 
+  // 变换（连同量化一起）
   m_pcTrQuant->transformNxN     ( rTu, compID, piResi, uiStride, pcCoeff,
 #if ADAPTIVE_QP_SELECTION
     pcArlCoeff,
@@ -1310,9 +1339,11 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
 #if DEBUG_STRING
   if ( (uiAbsSum > 0) || (DebugOptionList::DebugString_InvTran.getInt()&debugPredModeMask) )
 #else
+  // uiAbsSum 表示变换系数的绝对值和
   if ( uiAbsSum > 0 )
 #endif
   {
+    // 反变换
     m_pcTrQuant->invTransformNxN ( rTu, compID, piResi, uiStride, pcCoeff, cQP DEBUG_STRING_PASS_INTO_OPTIONAL(&sDebug, (DebugOptionList::DebugString_InvTran.getInt()&debugPredModeMask)) );
   }
   else
@@ -1328,6 +1359,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
 
 
   //===== reconstruction =====
+  // 图像重建
   {
     Pel* pPred      = piPred;
     Pel* pResi      = piResi;
@@ -1420,12 +1452,15 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   }
 
   //===== update distortion =====
+  // 失真代价更新
   ruiDist += m_pcRdCost->getDistPart( bitDepth, piReco, uiStride, piOrg, uiStride, uiWidth, uiHeight, compID );
 }
 
 
 
-
+/**
+ * 正式预测操作的入口函数
+ **/
 Void
 TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
                                     TComYuv*    pcPredYuv,
@@ -1444,7 +1479,9 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
   const UInt    uiFullDepth   = rTu.GetTransformDepthTotal();
   const UInt    uiTrDepth     = rTu.GetTransformDepthRel();
   const UInt    uiLog2TrSize  = rTu.GetLog2LumaTrSize();
+        // 是否检查TransformSkip
         Bool    bCheckFull    = ( uiLog2TrSize  <= pcCU->getSlice()->getSPS()->getQuadtreeTULog2MaxSize() );
+        // 是否对子PU进行递归处理
         Bool    bCheckSplit   = ( uiLog2TrSize  >  pcCU->getQuadtreeTULog2MinSizeInCU(uiAbsPartIdx) );
 
         Pel     resiLumaSplit [NUMBER_OF_STORED_RESIDUAL_TYPES][MAX_CU_SIZE * MAX_CU_SIZE];
@@ -1506,6 +1543,7 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
 
   if( bCheckFull )
   {
+    // skip 模式为真，进行两次遍历
     if(checkTransformSkip == true)
     {
       //----- store original entropy coding status -----
@@ -1513,9 +1551,11 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
 
       Distortion singleDistTmpLuma                    = 0;
       UInt       singleCbfTmpLuma                     = 0;
+      // 代价
       Double     singleCostTmp                        = 0;
       Int        firstCheckId                         = 0;
-
+      // 遍历两次是为了选取最优的模式，modeId能够决定xIntraCodingLumaBlk的最后一个参数，
+      // 该参数控制了预测像素如何生成
       for(Int modeId = firstCheckId; modeId < 2; modeId ++)
       {
         DEBUG_STRING_NEW(sModeString)
@@ -1532,6 +1572,7 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
 
 
         pcCU->setTransformSkipSubParts ( modeId, COMPONENT_Y, uiAbsPartIdx, totalAdjustedDepthChan );
+        // YUV分量的预测、变换、量化
         xIntraCodingTUBlock( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaSingle, false, singleDistTmpLuma, COMPONENT_Y, rTu DEBUG_STRING_PASS_INTO(sModeString), default0Save1Load2 );
 
         singleCbfTmpLuma = pcCU->getCbf( uiAbsPartIdx, COMPONENT_Y, uiTrDepth );
@@ -1547,6 +1588,7 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
           UInt uiSingleBits = xGetIntraBitsQT( rTu, true, false, false );
           singleCostTmp     = m_pcRdCost->calcRdCost( uiSingleBits, singleDistTmpLuma );
         }
+        // 代价更新
         if(singleCostTmp < dSingleCost)
         {
           DEBUG_STRING_SWAP(sDebug, sModeString)
@@ -1593,6 +1635,7 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
     else
     {
       //----- store original entropy coding status -----
+      // 当前块是否向下继续划分为4个子块，如果是，那么就递归处理
       if( bCheckSplit )
       {
         m_pcRDGoOnSbacCoder->store( m_pppcRDSbacCoder[ uiFullDepth ][ CI_QT_TRAFO_ROOT ] );
@@ -1655,6 +1698,7 @@ TEncSearch::xRecurIntraCodingLumaQT(TComYuv*    pcOrgYuv,
     {
       DEBUG_STRING_NEW(sChild)
 #if HHI_RQT_INTRA_SPEEDUP
+      // 递归调用
       xRecurIntraCodingLumaQT( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaSplit, uiSplitDistLuma, bCheckFirst, dSplitCost, tuRecurseChild DEBUG_STRING_PASS_INTO(sChild) );
 #else
       xRecurIntraCodingLumaQT( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaSplit, uiSplitDistLuma, dSplitCost, tuRecurseChild DEBUG_STRING_PASS_INTO(sChild) );
@@ -2412,6 +2456,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
     for ( UInt uiMode = 0; uiMode < max; uiMode++)
 #else
+    // ==== 对每一个模式进行预测、变换、量化，选出最优的预测模式（以及变换系数） ====
     // 遍历候选集中的模式
     for( UInt uiMode = 0; uiMode < numModesForFullRD; uiMode++ )
 #endif
