@@ -181,6 +181,8 @@ Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID comp
     const Int  bitDepthForChannelInStream = sps.getStreamBitDepth(chType);
     fillReferenceSamples (bitDepthForChannelInStream, bitDepthForChannelInStream - bitDepthForChannel,
 #else
+    // 这个函数很重要，主要功能是在真正进行预测之前，使用重建后的YUV对
+    // 当前的PU的相邻采样点进行赋值，为接下来进行的角度预测提供reference sample value
     fillReferenceSamples (bitDepthForChannel,
 #endif
                           piRoiOrigin, piIntraTemp, bNeighborFlags, iNumIntraNeighbor,  iUnitWidth, iUnitHeight, iAboveUnits, iLeftUnits,
@@ -220,14 +222,27 @@ Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID comp
       Bool useStrongIntraSmoothing = isLuma(chType) && sps.getUseStrongIntraSmoothing();
 
       const Pel bottomLeft = piIntraTemp[stride * uiTuHeight2];
+      // 128 左上角
       const Pel topLeft    = piIntraTemp[0];
+      // 128 右上角
       const Pel topRight   = piIntraTemp[uiTuWidth2];
+
+      // 滤波处理（获取到参考像素之后还需要进行滤波）
+      // 这里的滤波分为强滤波和普通滤波
+      // 
+      // 以下情况需要滤波
+      // 32x32的TU: 除了模式10, 26 之外的所有模式都需要进行滤波（好像是水平和垂直）
+      // 16x16的TU: 在32x32TU的基础上去除4个模式--9，11，25，27
+      // 8x8的TU: 仅针对3个45度角的模式(2,18.34)以及planar模式进行滤波
+      //
+      // 强滤波只处理 32x32 的TU
 
       if (useStrongIntraSmoothing)
       {
 #if O0043_BEST_EFFORT_DECODING
         const Int  threshold     = 1 << (bitDepthForChannelInStream - 5);
 #else
+        // 8 阈值
         const Int  threshold     = 1 << (bitDepthForChannel - 5);
 #endif
         const Bool bilinearLeft  = abs((bottomLeft + topLeft ) - (2 * piIntraTemp[stride * uiTuHeight])) < threshold; //difference between the
@@ -248,6 +263,8 @@ Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID comp
 
       if (useStrongIntraSmoothing)
       {
+        // 进入这里
+        // 7
         const Int shift = g_aucConvertToBit[uiTuHeight] + 3; //log2(uiTuHeight2)
 
         for(UInt i=1; i<uiTuHeight2; i++, piDestPtr-=stride)
@@ -333,6 +350,15 @@ Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID comp
   DEBUG_STRING_APPEND(sDebug, ss.str())
 }
 
+/**
+ * 在真正进行预测前，使用重建后的YUV图像对当前PU的相邻采样点进行赋值
+ * 
+ * 相邻点均不可用，则参考像素均被赋值为DC值
+ * 相邻点均可用，那么参考像素均被赋值为重建YUV图像中相同位置的像素
+ * 如果上面两个都不满足，那么按照从左下往左上，左上往右上的扫描顺序进行遍历，如果第一个点不可用
+ * 则使用下一个可用点对应的重建像素对其进行赋值，
+ * 对于除第一个点外的其他邻点，如果该点不可用，则使用它的前一个像素进行赋值，直到遍历完毕。
+ **/
 Void fillReferenceSamples( const Int bitDepth, 
 #if O0043_BEST_EFFORT_DECODING
                            const Int bitDepthDelta, 
@@ -349,11 +375,15 @@ Void fillReferenceSamples( const Int bitDepth,
                            const UInt uiHeight, 
                            const Int iPicStride )
 {
+  // 指向所感兴趣的重建YUV位置
   const Pel* piRoiTemp;
   Int  i, j;
+
+  // DC值
   Int  iDCValue = 1 << (bitDepth - 1);
   const Int iTotalUnits = iAboveUnits + iLeftUnits + 1; //+1 for top-left
 
+  // 相邻点均不可用，则参考样点被赋值为DC值。
   if (iNumIntraNeighbor == 0)
   {
     // Fill border with DC value
@@ -366,10 +396,11 @@ Void fillReferenceSamples( const Int bitDepth,
       piIntraTemp[i*uiWidth] = iDCValue;
     }
   }
+  // 相邻点均可用，那么参考样点呗赋值为重建YUV图像中相同位置的样点值
   else if (iNumIntraNeighbor == iTotalUnits)
   {
     // Fill top-left border and top and top right with rec. samples
-    piRoiTemp = piRoiOrigin - iPicStride - 1;
+    piRoiTemp = piRoiOrigin - iPicStride - 1; // 左上
 
     for (i=0; i<uiWidth; i++)
     {
@@ -381,7 +412,7 @@ Void fillReferenceSamples( const Int bitDepth,
     }
 
     // Fill left and below left border with rec. samples
-    piRoiTemp = piRoiOrigin - 1;
+    piRoiTemp = piRoiOrigin - 1; // 左
 
     for (i=1; i<uiHeight; i++)
     {

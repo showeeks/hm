@@ -387,6 +387,9 @@ Void TComPrediction::xPredIntraAng(       Int bitDepth,
   }
 }
 
+/**
+ * 对亮度块进行预测
+ **/
 Void TComPrediction::predIntraAng( const ComponentID compID, UInt uiDirMode, Pel* piOrg /* Will be null for decoding */, UInt uiOrgStride, Pel* piPred, UInt uiStride, TComTU &rTu, const Bool bUseFilteredPredSamples, const Bool bUseLosslessDPCM )
 {
   const ChannelType    channelType = toChannelType(compID);
