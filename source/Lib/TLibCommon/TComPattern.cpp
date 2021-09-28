@@ -116,6 +116,13 @@ Void TComPattern::setTileBorders(Int tileLeftTopPelPosX, Int tileLeftTopPelPosY,
 
 
 // TODO: move this function to TComPrediction.cpp.
+/**
+ * 初始化访问相邻块的工具类
+ * 
+ * 检测参考像素的可用性
+ * 对于不可用的参考像素，需要用某种方法进行替换，由fillReferenceSamples完成
+ * 参考像素的平滑滤波
+ **/
 Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID compID, const Bool bFilterRefSamples DEBUG_STRING_FN_DECLARE(sDebug))
 {
   const ChannelType chType    = toChannelType(compID);
@@ -144,10 +151,13 @@ Void TComPrediction::initIntraPatternChType( TComTU &rTu, const ComponentID comp
   const UInt uiPartIdxRT      = g_auiRasterToZscan[ g_auiZscanToRaster[ uiPartIdxLT ] +   iTUWidthInUnits  - 1                   ];
   const UInt uiPartIdxLB      = g_auiRasterToZscan[ g_auiZscanToRaster[ uiPartIdxLT ] + ((iTUHeightInUnits - 1) * iPartIdxStride)];
 
+  // 336步幅
   Int   iPicStride = pcCU->getPic()->getStride(compID);
+  // 邻居的标志位
   Bool  bNeighborFlags[4 * MAX_NUM_PART_IDXS_IN_CTU_WIDTH + 1];
   Int   iNumIntraNeighbor = 0;
 
+  // 获取左上角是否可用的标志
   bNeighborFlags[iLeftUnits] = isAboveLeftAvailable( pcCU, uiPartIdxLT );
   iNumIntraNeighbor += bNeighborFlags[iLeftUnits] ? 1 : 0;
   iNumIntraNeighbor  += isAboveAvailable     ( pcCU, uiPartIdxLT, uiPartIdxRT, (bNeighborFlags + iLeftUnits + 1)                    );

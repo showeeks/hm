@@ -2198,7 +2198,11 @@ TEncSearch::xSetIntraResultChromaQT(TComYuv*    pcRecoYuv, TComTU &rTu)
 }
 
 
-
+/**
+ * 亮度块的帧内预测的入口函数
+ * 
+ * 1. 遍历所有预测模式，得到每种模式下的残差信号，再对残差信号进行Hadamard变换计算satd值
+ **/
 Void
 TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
                                TComYuv*    pcOrgYuv,
@@ -2219,6 +2223,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
   const TComPPS     &pps                   = *(pcCU->getSlice()->getPPS());
         Distortion   uiOverallDistY        = 0;
         UInt         CandNum;
+        // 候选的 cost 列表
         Double       CandCostList[ FAST_UDI_MAX_RDMODE_NUM ];
         Pel          resiLumaPU[NUMBER_OF_STORED_RESIDUAL_TYPES][MAX_CU_SIZE * MAX_CU_SIZE];
 
@@ -2242,12 +2247,15 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 #endif
 
   //===== set QP and clear Cbf =====
+
+  // 设置QP参数，清理Cbf
   if ( pps.getUseDQP() == true)
   {
     pcCU->setQPSubParts( pcCU->getQP(0), 0, uiDepth );
   }
   else
   {
+    // 进入此处
     pcCU->setQPSubParts( pcCU->getSlice()->getSliceQp(), 0, uiDepth );
   }
 
@@ -2264,58 +2272,74 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     DEBUG_STRING_NEW(sTemp2)
 
     //===== determine set of modes to be tested (using prediction signal only) =====
-    Int numModesAvailable     = 35; //total number of Intra modes
+
+    //total number of Intra modes
+    // 35 种预测模式
+    Int numModesAvailable     = 35; 
     UInt uiRdModeList[FAST_UDI_MAX_RDMODE_NUM];
     Int numModesForFullRD = m_pcEncCfg->getFastUDIUseMPMEnabled()?g_aucIntraModeNumFast_UseMPM[ uiWidthBit ] : g_aucIntraModeNumFast_NotUseMPM[ uiWidthBit ];
 
     // this should always be true
     assert (tuRecurseWithPU.ProcessComponentSection(COMPONENT_Y));
+    // 初始化访问相邻块的工具类
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
 
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
+    // 使用快速搜索模式
     if (doFastSearch)
     {
       assert(numModesForFullRD < numModesAvailable);
 
       for( Int i=0; i < numModesForFullRD; i++ )
       {
+        // 用于存储每一种模式的开销cost
         CandCostList[ i ] = MAX_DOUBLE;
       }
       CandNum = 0;
 
       const TComRectangle &puRect=tuRecurseWithPU.getRect(COMPONENT_Y);
       const UInt uiAbsPartIdx=tuRecurseWithPU.GetAbsPartIdxTU();
-
+      // 在原始的YUV中获取亮度的地址
       Pel* piOrg         = pcOrgYuv ->getAddr( COMPONENT_Y, uiAbsPartIdx );
+      // 在预测的 YUV 中获取亮度的地址
       Pel* piPred        = pcPredYuv->getAddr( COMPONENT_Y, uiAbsPartIdx );
+
+      // 偏移 8
       UInt uiStride      = pcPredYuv->getStride( COMPONENT_Y );
       DistParam distParam;
       const Bool bUseHadamard=pcCU->getCUTransquantBypass(0) == 0;
       m_pcRdCost->setDistParam(distParam, sps.getBitDepth(CHANNEL_TYPE_LUMA), piOrg, uiStride, piPred, uiStride, puRect.width, puRect.height, bUseHadamard);
       distParam.bApplyWeight = false;
+      // 遍历35中帧内预测模式，选取若干个代价比较小的模式作为后续处理的模式
+      // 总共有35种模式，numModesAvailable=35
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
       {
         UInt       uiMode = modeIdx;
         Distortion uiSad  = 0;
 
+        // 在帧内预测之前，使用重建后的YUV图像对当前PU的相邻样点进行滤波
         const Bool bUseFilter=TComPrediction::filteringIntraReferenceSamples(COMPONENT_Y, uiMode, puRect.width, puRect.height, chFmt, sps.getSpsRangeExtension().getIntraSmoothingDisabledFlag());
 
+        // 对亮度块进行预测
         predIntraAng( COMPONENT_Y, uiMode, piOrg, uiStride, piPred, uiStride, tuRecurseWithPU, bUseFilter, TComPrediction::UseDPCMForFirstPassIntraEstimation(tuRecurseWithPU, uiMode) );
 
         // use hadamard transform here
+        // 对残差信号进行Hadamard变换计算satd值
+        // 使用hadamard变换，计算satd的值
         uiSad+=distParam.DistFunc(&distParam);
 
         UInt   iModeBits = 0;
 
         // NB xModeBitsIntra will not affect the mode for chroma that may have already been pre-estimated.
         iModeBits+=xModeBitsIntra( pcCU, uiMode, uiPartOffset, uiDepth, CHANNEL_TYPE_LUMA );
-
+        // 利用SATD值计算每种预测模式的率失真代价，选取失真代价最小的几种模式为预测模式集
+        // 计算此种模式下的代价
         Double cost      = (Double)uiSad + (Double)iModeBits * sqrtLambdaForFirstPass;
 
 #if DEBUG_INTRA_SEARCH_COSTS
         std::cout << "1st pass mode " << uiMode << " SAD = " << uiSad << ", mode bits = " << iModeBits << ", cost = " << cost << "\n";
 #endif
-
+        // 更新候选列表
         CandNum += xUpdateCandList( uiMode, cost, numModesForFullRD, uiRdModeList, CandCostList );
       }
 
@@ -2324,10 +2348,13 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
 
         Int iMode = -1;
+        // 使用相邻块的预测模式来对当前块的模式进行预测，得到若干模式，存放在uiPreds中
         pcCU->getIntraDirPredictor( uiPartOffset, uiPreds, COMPONENT_Y, &iMode );
-
+        
+        // 将候选列表的索引设置为此模式
         const Int numCand = ( iMode >= 0 ) ? iMode : Int(NUM_MOST_PROBABLE_MODES);
 
+        // 遍历预测的模式，如果它不在模式候选列表中，那么把它添加到模式候选列表中
         for( Int j=0; j < numCand; j++)
         {
           Bool mostProbableModeIncluded = false;
@@ -2371,6 +2398,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
     for ( UInt uiMode = 0; uiMode < max; uiMode++)
 #else
+    // 遍历候选集中的模式
     for( UInt uiMode = 0; uiMode < numModesForFullRD; uiMode++ )
 #endif
     {
@@ -2381,13 +2409,17 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
       DEBUG_STRING_NEW(sMode)
       // set context models
+      // 设置上下文模型
       m_pcRDGoOnSbacCoder->load( m_pppcRDSbacCoder[uiDepth][CI_CURR_BEST] );
 
       // determine residual for partition
       Distortion uiPUDistY = 0;
       Double     dPUCost   = 0.0;
 #if HHI_RQT_INTRA_SPEEDUP
+      // 通过多候选模式进行预测、变换、量化等操作来计算代价
+      // 注意倒数第二个参数bCheckFirst是true, 表示会继续按照四叉树的方式向下划分
       xRecurIntraCodingLumaQT( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaPU, uiPUDistY, true, dPUCost, tuRecurseWithPU DEBUG_STRING_PASS_INTO(sMode) );
+      // 重要函数end
 #else
       xRecurIntraCodingLumaQT( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaPU, uiPUDistY, dPUCost, tuRecurseWithPU DEBUG_STRING_PASS_INTO(sMode) );
 #endif
@@ -2397,6 +2429,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 #endif
 
       // check r-d cost
+      // 从候选列表中选取最优的模式
       if( dPUCost < dBestPUCost )
       {
         DEBUG_STRING_SWAP(sPU, sMode)
@@ -2474,9 +2507,12 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       Distortion uiPUDistY = 0;
       Double     dPUCost   = 0.0;
 
+      // 现在已经知道最优模式了，使用最优模式对PU进行预测， 然后变换量化等，计算代价
+      // 注意倒数第二个参数bCheckFirst 是false, 表示当前PU不再进行划分，即只处理当前深度的PU
       xRecurIntraCodingLumaQT( pcOrgYuv, pcPredYuv, pcResiYuv, resiLumaPU, uiPUDistY, false, dPUCost, tuRecurseWithPU DEBUG_STRING_PASS_INTO(sModeTree));
 
       // check r-d cost
+      // 检测同一种模式下，bCheckFirst 为true和false的情况下，哪个代价更优
       if( dPUCost < dBestPUCost )
       {
         DEBUG_STRING_SWAP(sPU, sModeTree)
@@ -2528,6 +2564,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     }
 
     //--- set reconstruction for next intra prediction blocks ---
+    // 变换量化/反变换反量化都已经处理完成了，那么设置重建块
     if( !tuRecurseWithPU.IsLastSection() )
     {
       const TComRectangle &puRect=tuRecurseWithPU.getRect(COMPONENT_Y);
@@ -2551,7 +2588,9 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
     //=== update PU data ====
     pcCU->setIntraDirSubParts     ( CHANNEL_TYPE_LUMA, uiBestPUMode, uiPartOffset, uiDepth + uiInitTrDepth );
-  } while (tuRecurseWithPU.nextSection(tuRecurseCU));
+  } while (tuRecurseWithPU.nextSection(tuRecurseCU)); // PU Loop
+
+  // 设置一些Cbf, 重置熵编码上下文之类的操作
 
 
   if( uiNumPU > 1 )
