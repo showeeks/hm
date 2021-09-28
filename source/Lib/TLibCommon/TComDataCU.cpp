@@ -1352,12 +1352,14 @@ Void TComDataCU::getAllowedChromaDir( UInt uiAbsPartIdx, UInt uiModeList[NUM_CHR
   }
 }
 
-/** Get most probable intra modes
-*\param   uiAbsPartIdx    partition index
-*\param   uiIntraDirPred  pointer to the array for MPM storage
-*\param   compID          colour component ID
-*\param   piMode          it is set with MPM mode in case both MPM are equal. It is used to restrict RD search at encode side.
-*\returns Number of MPM
+/** 
+ * 获取最有可能的帧内预测模式(MPM)
+ * Get most probable intra modes
+*\param   uiAbsPartIdx    分区索引 partition index
+*\param   uiIntraDirPred  MPM列表(Most Probable intra Modes)。pointer to the array for MPM storage
+*\param   compID          色彩分量的ID, 例如COMPONENT_Y，U, V. colour component ID
+*\param   piMode          用来在编码侧限制RD搜索。it is set with MPM mode in case both MPM are equal. It is used to restrict RD search at encode side.
+*\returns MPM的数量 Number of MPM
 */
 Void TComDataCU::getIntraDirPredictor( UInt uiAbsPartIdx, Int uiIntraDirPred[NUM_MOST_PROBABLE_MODES], const ComponentID compID, Int* piMode ) const
 {

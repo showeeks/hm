@@ -419,11 +419,14 @@ Void fillReferenceSamples( const Int bitDepth,
 #if O0043_BEST_EFFORT_DECODING
       piIntraTemp[i*uiWidth] = (*(piRoiTemp)) << bitDepthDelta;
 #else
-      piIntraTemp[i*uiWidth] = *(piRoiTemp);
+      piIntraTemp[i*uiWidth] = *(piRoiTemp); // 每个点赋值为参考样本对应位置的YUV样点值
 #endif
-      piRoiTemp += iPicStride;
+      piRoiTemp += iPicStride; // 下一行
     }
   }
+  // 参考样点值只有一部分是可用的
+  // 按照从左下往左上，从左上往右上的扫描顺序进行遍历
+  // 如果第一个点不可用，则使用下一个可用点对应的重建YUV样点值对其进行赋值，直到遍历完毕
   else // reference samples are partially available
   {
     // all above units have "unitWidth" samples each, all left/below-left units have "unitHeight" samples each
@@ -434,6 +437,7 @@ Void fillReferenceSamples( const Int bitDepth,
 
 
     // Initialize
+    // 现将所有点的值置为DC值
     for (i=0; i<iTotalSamples; i++)
     {
       piIntraLine[i] = iDCValue;

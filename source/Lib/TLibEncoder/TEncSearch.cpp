@@ -2200,6 +2200,7 @@ TEncSearch::xSetIntraResultChromaQT(TComYuv*    pcRecoYuv, TComTU &rTu)
 
 /**
  * 亮度块的帧内预测的入口函数
+ * 常规方式帧内预测，特点是对每一个模式都进行预测、变换、量化
  * 
  * 1. 遍历所有预测模式，得到每种模式下的残差信号，再对残差信号进行Hadamard变换计算satd值
  **/
@@ -2285,6 +2286,14 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
     initIntraPatternChType( tuRecurseWithPU, COMPONENT_Y, true DEBUG_STRING_PASS_INTO(sTemp2) );
 
     Bool doFastSearch = (numModesForFullRD != numModesAvailable);
+    // 在常规帧内预测搜索模式中，所有的35种帧内预测都被添加到候选列表中
+    // 对每一个模式都进行预测、变换、量化等操作，速度很慢
+    // 
+    // 在快速搜索模式中，会先遍历35种帧内预测模式，对于每一种模式都进行预测操作，选出代价最优的几种模式
+    // 作为候选模式，添加到候选模式列表中
+    // 同时，因为相邻的PU通常具有很强的相关性，因此可以使用相邻PU的帧内模式来预测当前PU的帧内模式，
+    // 预测之后可以得到若干个模式，把这些模式加入模式候选列表中
+
     // 使用快速搜索模式
     if (doFastSearch)
     {
@@ -2310,6 +2319,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
       const Bool bUseHadamard=pcCU->getCUTransquantBypass(0) == 0;
       m_pcRdCost->setDistParam(distParam, sps.getBitDepth(CHANNEL_TYPE_LUMA), piOrg, uiStride, piPred, uiStride, puRect.width, puRect.height, bUseHadamard);
       distParam.bApplyWeight = false;
+      // ==== 从所有的35种模式中选出若干最优模式 ====
       // 遍历35中帧内预测模式，选取若干个代价比较小的模式作为后续处理的模式
       // 总共有35种模式，numModesAvailable=35
       for( Int modeIdx = 0; modeIdx < numModesAvailable; modeIdx++ )
@@ -2333,6 +2343,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         // NB xModeBitsIntra will not affect the mode for chroma that may have already been pre-estimated.
         iModeBits+=xModeBitsIntra( pcCU, uiMode, uiPartOffset, uiDepth, CHANNEL_TYPE_LUMA );
         // 利用SATD值计算每种预测模式的率失真代价，选取失真代价最小的几种模式为预测模式集
+
         // 计算此种模式下的代价
         Double cost      = (Double)uiSad + (Double)iModeBits * sqrtLambdaForFirstPass;
 
@@ -2345,6 +2356,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
 
       if (m_pcEncCfg->getFastUDIUseMPMEnabled())
       {
+        // 预测模式列表
         Int uiPreds[NUM_MOST_PROBABLE_MODES] = {-1, -1, -1};
 
         Int iMode = -1;
@@ -2371,6 +2383,7 @@ TEncSearch::estIntraPredLumaQT(TComDataCU* pcCU,
         }
       }
     }
+    // 使用常规方式
     else
     {
       for( Int i=0; i < numModesForFullRD; i++)

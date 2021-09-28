@@ -388,7 +388,7 @@ Void TComPrediction::xPredIntraAng(       Int bitDepth,
 }
 
 /**
- * 对亮度块进行预测
+ * 亮度块的帧内预测
  **/
 Void TComPrediction::predIntraAng( const ComponentID compID, UInt uiDirMode, Pel* piOrg /* Will be null for decoding */, UInt uiOrgStride, Pel* piPred, UInt uiStride, TComTU &rTu, const Bool bUseFilteredPredSamples, const Bool bUseLosslessDPCM )
 {
@@ -404,10 +404,12 @@ Void TComPrediction::predIntraAng( const ComponentID compID, UInt uiDirMode, Pel
         Pel *pDst = piPred;
 
   // get starting pixel in block
+  // 获取块中的开始像素
   const Int sw = (2 * iWidth + 1);
 
   if ( bUseLosslessDPCM )
   {
+    // 获取数据的指针
     const Pel *ptrSrc = getPredictorPtr( compID, false );
     // Sample Adaptive intra-Prediction (SAP)
     if (uiDirMode==HOR_IDX)
@@ -448,13 +450,16 @@ Void TComPrediction::predIntraAng( const ComponentID compID, UInt uiDirMode, Pel
   else
   {
     const Pel *ptrSrc = getPredictorPtr( compID, bUseFilteredPredSamples );
-
+    // 如果指定了planar模式
     if ( uiDirMode == PLANAR_IDX )
     {
+      // planar预测模式
       xPredIntraPlanar( ptrSrc+sw+1, sw, pDst, uiStride, iWidth, iHeight );
     }
     else
     {
+      // 没有指定planar模式
+      // 区分水平或者垂直模式进行预测
       // Create the prediction
             TComDataCU *const pcCU              = rTu.getCU();
       const UInt              uiAbsPartIdx      = rTu.GetAbsPartIdxTU();
@@ -465,9 +470,10 @@ Void TComPrediction::predIntraAng( const ComponentID compID, UInt uiDirMode, Pel
       const Int channelsBitDepthForPrediction = rTu.getCU()->getSlice()->getSPS()->getBitDepth(channelType);
 #endif
       xPredIntraAng( channelsBitDepthForPrediction, ptrSrc+sw+1, sw, pDst, uiStride, iWidth, iHeight, channelType, uiDirMode, enableEdgeFilters );
-
+      // 观察是否为DC模式
       if( uiDirMode == DC_IDX )
       {
+        // 对DC模式进行滤波
         xDCPredFiltering( ptrSrc+sw+1, sw, pDst, uiStride, iWidth, iHeight, channelType );
       }
     }
@@ -719,6 +725,8 @@ Void TComPrediction::getMvPredAMVP( TComDataCU* pcCU, UInt uiPartIdx, UInt uiPar
 }
 
 /** Function for deriving planar intra prediction.
+ * planar 帧内预测模式
+ * 
  * \param pSrc        pointer to reconstructed sample array
  * \param srcStride   the stride of the reconstructed sample array
  * \param rpDst       reference to pointer for the prediction sample array
