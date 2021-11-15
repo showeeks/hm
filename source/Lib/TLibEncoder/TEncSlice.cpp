@@ -152,7 +152,7 @@ TEncSlice::setUpLambda(TComSlice* slice, const Double dLambda, Int iQP)
 
 /**
  - 标记未被引用的帧 non-referenced frame marking
- - 根据时间结构计算量化参数 QP computation based on temporal structure
+ - 根据时域结构计算量化参数 QP computation based on temporal structure
  - 根据量化参数计算 lambda lambda computation based on QP
  - set temporal layer ID and the parameter sets
  .
@@ -297,6 +297,7 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
   Int iQP;
   Double dOrigQP = dQP;
 
+  // 如果开启多 QP 优化，会对每个遍历的 QP 初始 Lambda
   // pre-compute lambda and QP values for all possible QP candidates
   // 计算所有可能的候选QP和lambda的值
   for ( Int iDQpIdx = 0; iDQpIdx < 2 * m_pcCfg->getDeltaQpRD() + 1; iDQpIdx++ )
@@ -306,11 +307,13 @@ Void TEncSlice::initEncSlice( TComPic* pcPic, const Int pocLast, const Int pocCu
     dLambda = calculateLambda(rpcSlice, iGOPid, depth, dQP, dQP, iQP );
 
     // 量化步长计算结果存储起来
+    // iDQpIdx 为遍历 QP 的索引
     m_vdRdPicLambda[iDQpIdx] = dLambda;
     m_vdRdPicQp    [iDQpIdx] = dQP;
     m_viRdPicQp    [iDQpIdx] = iQP;
   }
 
+  // 如果没有多 QP 优化时，初始的拉格朗日乘子选择索引为0的QP和 lambda
   // obtain dQP = 0 case
   dLambda = m_vdRdPicLambda[0];
   dQP     = m_vdRdPicQp    [0];
@@ -449,7 +452,7 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
 {
   enum   SliceType eSliceType    = slice->getSliceType();
   const  Bool      isField       = slice->getPic()->isField();
-  // B帧的数量
+  // 计算 GOP 中 B 帧的数量
   const  Int       NumberBFrames = ( m_pcCfg->getGOPSize() - 1 );
   // QP偏移
   const  Int       SHIFT_QP      = 12;
@@ -470,6 +473,7 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
   {
     if (m_pcCfg->getIntraQpFactor()>=0.0 && m_pcCfg->getGOPEntry(GOPid).m_sliceType != I_SLICE)
     {
+      // 如果不是I帧，根据 cfg 配置，对 GOP 中不同 slice 分配不同的 Lagrange 乘子权重
       dQPFactor=m_pcCfg->getIntraQpFactor();
     }
     else
@@ -481,6 +485,7 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
       else
       {
         // dLambda_scale == 1
+        // I 帧根据 GOP 中非参考图像的个数分配 Lagrange 乘子权重
         Double dLambda_scale = 1.0 - Clip3( 0.0, 0.5, 0.05*(Double)(isField ? NumberBFrames/2 : NumberBFrames) );
         dQPFactor=0.57*dLambda_scale;
       }
@@ -493,6 +498,7 @@ Double TEncSlice::calculateLambda( const TComSlice* slice,
 
   Double dLambda = dQPFactor*pow( 2.0, qp_temp/3.0 );
 
+  // I 帧的 depth 为 0
   if( !(m_pcCfg->getLambdaFromQPEnable()) && depth>0 )
   {
 #if FULL_NBIT

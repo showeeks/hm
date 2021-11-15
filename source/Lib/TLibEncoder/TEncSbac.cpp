@@ -102,6 +102,13 @@ TEncSbac::~TEncSbac()
 // Public member functions
 // ====================================================================================================================
 
+/**
+ * 初始化的入口函数
+ * 获取QP和slice 的类型，然后调用initBuffer进行上下文概率模型的初始化
+ *
+ * @param pSlice
+ * @return
+ */
 Void TEncSbac::resetEntropy           (const TComSlice *pSlice)
 {
   Int  iQp              = pSlice->getSliceQp();
@@ -113,6 +120,9 @@ Void TEncSbac::resetEntropy           (const TComSlice *pSlice)
     eSliceType = encCABACTableIdx;
   }
 
+  // 初始化各个模型的缓存
+
+  // split 标志的上下文
   m_cCUSplitFlagSCModel.initBuffer                ( eSliceType, iQp, (UChar*)INIT_SPLIT_FLAG );
   m_cCUSkipFlagSCModel.initBuffer                 ( eSliceType, iQp, (UChar*)INIT_SKIP_FLAG );
   m_cCUMergeFlagExtSCModel.initBuffer             ( eSliceType, iQp, (UChar*)INIT_MERGE_FLAG_EXT);
@@ -150,6 +160,7 @@ Void TEncSbac::resetEntropy           (const TComSlice *pSlice)
     m_golombRiceAdaptationStatistics[statisticIndex] = 0;
   }
 
+  // 二值化的一些操作
   m_pcBinIf->start();
 
   return;
@@ -260,6 +271,14 @@ Void TEncSbac::codeSliceFinish()
   m_pcBinIf->finish();
 }
 
+/**
+ * 一元码的实现
+ *
+ * @param uiSymbol
+ * @param pcSCModel
+ * @param iOffset
+ * @return
+ */
 Void TEncSbac::xWriteUnarySymbol( UInt uiSymbol, ContextModel* pcSCModel, Int iOffset )
 {
   m_pcBinIf->encodeBin( uiSymbol ? 1 : 0, pcSCModel[0] );
@@ -277,6 +296,14 @@ Void TEncSbac::xWriteUnarySymbol( UInt uiSymbol, ContextModel* pcSCModel, Int iO
   return;
 }
 
+/**
+ *
+ * @param uiSymbol 语法元素值
+ * @param pcSCModel
+ * @param iOffset
+ * @param uiMaxSymbol
+ * @return
+ */
 Void TEncSbac::xWriteUnaryMaxSymbol( UInt uiSymbol, ContextModel* pcSCModel, Int iOffset, UInt uiMaxSymbol )
 {
   if (uiMaxSymbol == 0)
@@ -284,6 +311,7 @@ Void TEncSbac::xWriteUnaryMaxSymbol( UInt uiSymbol, ContextModel* pcSCModel, Int
     return;
   }
 
+  // 先编码第一个编码一元码的第一个比特
   m_pcBinIf->encodeBin( uiSymbol ? 1 : 0, pcSCModel[ 0 ] );
 
   if ( uiSymbol == 0 )
@@ -291,12 +319,16 @@ Void TEncSbac::xWriteUnaryMaxSymbol( UInt uiSymbol, ContextModel* pcSCModel, Int
     return;
   }
 
+  // 判断是否需要截断
   Bool bCodeLast = ( uiMaxSymbol > uiSymbol );
 
+  // 编码 x 个1（一元码）
   while( --uiSymbol )
   {
     m_pcBinIf->encodeBin( 1, pcSCModel[ iOffset ] );
   }
+
+  // 不需要截断，直接在后面添加0
   if( bCodeLast )
   {
     m_pcBinIf->encodeBin( 0, pcSCModel[ iOffset ] );
@@ -305,6 +337,15 @@ Void TEncSbac::xWriteUnaryMaxSymbol( UInt uiSymbol, ContextModel* pcSCModel, Int
   return;
 }
 
+/**
+ * k阶指数哥伦布码：二值化
+ *
+ * HEVC最常用的是1阶
+ *
+ * @param uiSymbol 语法元素值
+ * @param uiCount 阶数K
+ * @return
+ */
 Void TEncSbac::xWriteEpExGolomb( UInt uiSymbol, UInt uiCount )
 {
   UInt bins = 0;

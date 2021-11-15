@@ -496,8 +496,11 @@ public:
   // -------------------------------------------------------------------------------------------------------------------
 
   Double&       getTotalCost                  ( )                                                          { return m_dTotalCost;        }
+  // 总的失真，某一种模式下总的失真
   Distortion&   getTotalDistortion            ( )                                                          { return m_uiTotalDistortion; }
+  // 总的代价，某一种模式下总的代价
   UInt&         getTotalBits                  ( )                                                          { return m_uiTotalBits;       }
+  // 总的比特数，某一种模式下编码的比特数
   UInt&         getTotalNumPart               ( )                                                          { return m_uiNumPartition;    }
 
   UInt          getCoefScanIdx                ( const UInt uiAbsPartIdx, const UInt uiWidth, const UInt uiHeight, const ComponentID compID ) const ;

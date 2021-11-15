@@ -851,11 +851,14 @@ struct BitDepths
 };
 
 /// parameters for deblocking filter
+/**
+ * 去方块滤波的参数结构
+ */
 typedef struct _LFCUParam
 {
-  Bool bInternalEdge;                     ///< indicates internal edge
-  Bool bLeftEdge;                         ///< indicates left edge
-  Bool bTopEdge;                          ///< indicates top edge
+  Bool bInternalEdge;                     ///< indicates internal edge 表示内部边界
+  Bool bLeftEdge;                         ///< indicates left edge 表示左边边界
+  Bool bTopEdge;                          ///< indicates top edge 表示上面边界
 } LFCUParam;
 
 

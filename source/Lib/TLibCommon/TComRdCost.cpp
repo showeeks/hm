@@ -333,9 +333,27 @@ Distortion TComRdCost::calcHAD( Int bitDepth, const Pel* pi0, Int iStride0, cons
   return ( uiSum >> DISTORTION_PRECISION_ADJUSTMENT(bitDepth-8) );
 }
 
+/**
+ * 失真的计算
+ *
+ * 一个像素块的总的失真是该像素块中三个分量的失真之和。
+ *
+ * @param bitDepth
+ * @param piCur
+ * @param iCurStride
+ * @param piOrg
+ * @param iOrgStride
+ * @param uiBlkWidth
+ * @param uiBlkHeight
+ * @param compID
+ * @param eDFunc
+ * @return
+ */
 Distortion TComRdCost::getDistPart( Int bitDepth, const Pel* piCur, Int iCurStride,  const Pel* piOrg, Int iOrgStride, UInt uiBlkWidth, UInt uiBlkHeight, const ComponentID compID, DFunc eDFunc )
 {
+    // DistParam 是失真参数结构体，用于存放计算失真的参数，以及处理计算过程的函数指针
   DistParam cDtParam;
+  // eDFunc 指定使用哪个失真计算函数（默认使用 SSE）
   setDistParam( uiBlkWidth, uiBlkHeight, eDFunc, cDtParam );
   cDtParam.pOrg       = piOrg;
   cDtParam.pCur       = piCur;
@@ -1173,6 +1191,12 @@ Distortion TComRdCost::xGetSAD48( DistParam* pcDtParam )
 // SSE
 // --------------------------------------------------------------------------------------------------------------------
 
+/**
+ * 默认的失真计算函数（使用 SSE 的方法）
+ *
+ * @param pcDtParam 失真参数结构体，计算失真的参数，处理计算过程的函数指针
+ * @return
+ */
 Distortion TComRdCost::xGetSSE( DistParam* pcDtParam )
 {
   if ( pcDtParam->bApplyWeight )

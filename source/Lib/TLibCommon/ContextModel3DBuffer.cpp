@@ -61,16 +61,25 @@ ContextModel3DBuffer::ContextModel3DBuffer( UInt uiSizeZ, UInt uiSizeY, UInt uiS
 /**
  * Initialize 3D buffer with respect to slice type, QP and given initial probability table
  *
- * \param  sliceType      slice type
+ * 根据 slice 的类型获取存放 initValue 的表格
+ * initValue 的值和 slice 的类型是相关的。为了提高计算速度，HEVC通过查表代替直接计算。
+ *
+ * \param  sliceType      slice type | slice 的类型
  * \param  qp             input QP value
  * \param  ctxModel       given probability table
  */
 Void ContextModel3DBuffer::initBuffer( SliceType sliceType, Int qp, UChar* ctxModel )
 {
+  // 根据当前 slice 的类型选择对应的 context
   ctxModel += sliceType * m_sizeXYZ;
+
+  // 根据 sliceType 计算 initType 并将指针移动到正确的位置
+  // 这个 initType 用来索引 context model，这个值由 slice_type 决定
 
   for ( Int n = 0; n < m_sizeXYZ; n++ )
   {
+    // 通过查表替代直接计算
+    // 完成 context 的各个状态变量的初始化工作
     m_contextModel[ n ].init( qp, ctxModel[ n ] );
     m_contextModel[ n ].setBinsCoded( 0 );
   }

@@ -168,6 +168,7 @@ static const UInt notFirstGroupNeighbourhoodContextOffset[MAX_NUM_CHANNEL_TYPE] 
 // ====================================================================================================================
 
 // initial probability for cu_transquant_bypass flag
+// 存放 initValue 的表格，每个语法元素对应一个表格
 static const UChar
 INIT_CU_TRANSQUANT_BYPASS_FLAG[NUMBER_OF_SLICE_TYPES][NUM_CU_TRANSQUANT_BYPASS_FLAG_CTX] =
 {

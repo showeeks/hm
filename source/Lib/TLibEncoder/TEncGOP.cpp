@@ -167,25 +167,50 @@ Void TEncGOP::generatePPS_RBSP(TComBitIf* rbsp, const TComPPS *pps)
 }
 #endif
 
+/**
+ * 对参数集进行编码
+ * @param accessUnit
+ * @param vps
+ * @return
+ */
 Int TEncGOP::xWriteVPS (AccessUnit &accessUnit, const TComVPS *vps)
 {
+  // NAL 单元（包含一个slice片段的数据），类型是视频参数集
   OutputNALUnit nalu(NAL_UNIT_VPS);
+  // 熵编码器的结果放到NAL的子比特流中去
   m_pcEntropyCoder->setBitstream(&nalu.m_Bitstream);
+  // 编码视频参数集
   m_pcEntropyCoder->encodeVPS(vps);
+  // 将一个 NAL单元存档到列表中
   accessUnit.push_back(new NALUnitEBSP(nalu));
   return (Int)(accessUnit.back()->m_nalUnitData.str().size()) * 8;
 }
 
+/**
+ * 把HRD信息写入SPS中
+ *
+ * @param accessUnit
+ * @param sps
+ * @return
+ */
 Int TEncGOP::xWriteSPS (AccessUnit &accessUnit, const TComSPS *sps)
 {
+  // 类型是序列参数集
   OutputNALUnit nalu(NAL_UNIT_SPS);
   m_pcEntropyCoder->setBitstream(&nalu.m_Bitstream);
+  // 编码序列参数集
   m_pcEntropyCoder->encodeSPS(sps);
   accessUnit.push_back(new NALUnitEBSP(nalu));
   return (Int)(accessUnit.back()->m_nalUnitData.str().size()) * 8;
 
 }
 
+/**
+ * 编码图像参数集
+ * @param accessUnit
+ * @param pps
+ * @return
+ */
 Int TEncGOP::xWritePPS (AccessUnit &accessUnit, const TComPPS *pps)
 {
   OutputNALUnit nalu(NAL_UNIT_PPS);
@@ -200,17 +225,21 @@ Int TEncGOP::xWriteParameterSets (AccessUnit &accessUnit, TComSlice *slice, cons
 {
   Int actualTotalBits = 0;
 
+  // 是否序列头，对图像的第一帧进行此处理，其余的帧不进行此处理
   if (bSeqFirst)
   {
+    // 对参数集进行编码
     actualTotalBits += xWriteVPS(accessUnit, m_pcEncTop->getVPS());
   }
   if (m_pcEncTop->SPSNeedsWriting(slice->getSPS()->getSPSId())) // Note this assumes that all changes to the SPS are made at the TEncTop level prior to picture creation (TEncTop::xGetNewPicBuffer).
   {
     assert(bSeqFirst); // Implementations that use more than 1 SPS need to be aware of activation issues.
+    // 对序列参数集编码
     actualTotalBits += xWriteSPS(accessUnit, slice->getSPS());
   }
   if (m_pcEncTop->PPSNeedsWriting(slice->getPPS()->getPPSId())) // Note this assumes that all changes to the PPS are made at the TEncTop level prior to picture creation (TEncTop::xGetNewPicBuffer).
   {
+    // 编码图像参数集
     actualTotalBits += xWritePPS(accessUnit, slice->getPPS());
   }
 
@@ -1379,9 +1408,11 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
       || (m_pcCfg->getEfficientFieldIRAPEnabled() && isField && pcSlice->getAssociatedIRAPType() >= NAL_UNIT_CODED_SLICE_BLA_W_LP && pcSlice->getAssociatedIRAPType() <= NAL_UNIT_CODED_SLICE_CRA && pcSlice->getAssociatedIRAPPOC() == pcSlice->getPOC()+1)
       )
     {
+      // 创建一个明确的参考图像集RPS
       pcSlice->createExplicitReferencePictureSetFromReference(rcListPic, pcSlice->getRPS(), pcSlice->isIRAP(), m_iLastRecoveryPicPOC, m_pcCfg->getDecodingRefreshType() == 3, m_pcCfg->getEfficientFieldIRAPEnabled());
     }
 
+    // 应用参考图像集
     pcSlice->applyReferencePictureSet(rcListPic, pcSlice->getRPS());
 
     if(pcSlice->getTLayer() > 0 
@@ -1447,14 +1478,19 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         }
       }
     }
+    // 排列RPS中参考图像集
     arrangeLongtermPicturesInRPS(pcSlice, rcListPic);
+    // 参考图像集修改（修改标志都设置为0）
     TComRefPicListModification* refPicListModification = pcSlice->getRefPicListModification();
     refPicListModification->setRefPicListModificationFlagL0(0);
     refPicListModification->setRefPicListModificationFlagL1(0);
+    // 设置当前条带参考的图像的索引
     pcSlice->setNumRefIdx(REF_PIC_LIST_0,min(m_pcCfg->getGOPEntry(iGOPid).m_numRefPicsActive,pcSlice->getRPS()->getNumberOfPictures()));
     pcSlice->setNumRefIdx(REF_PIC_LIST_1,min(m_pcCfg->getGOPEntry(iGOPid).m_numRefPicsActive,pcSlice->getRPS()->getNumberOfPictures()));
 
     //  Set reference list
+    // 设置参考图像列表
+    // 经过上面的一系列处理图像参考集之后，rcListPic 最终放在参考帧
     pcSlice->setRefPicList ( rcListPic );
 
     //  Slice info. refinement
@@ -1519,10 +1555,13 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
 
 
     //-------------------------------------------------------------
+    // 设置条带的参考POC列表
     pcSlice->setRefPOCList();
 
+    // 设置条带的list1的索引到list0的索引的映射关系
     pcSlice->setList1IdxToList0Idx();
 
+    // 设置是否启用 TMVP
     if (m_pcEncTop->getTMVPModeId() == 2)
     {
       if (iGOPid == 0) // first picture in SOP (i.e. forward B)
@@ -1543,7 +1582,8 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     {
       pcSlice->setEnableTMVPFlag(0);
     }
-    
+
+    // 是哦福使用了自适应的搜索范围
     // set adaptive search range for non-intra-slices
     if (m_pcCfg->getUseASR() && pcSlice->getSliceType()!=I_SLICE)
     {
@@ -1582,6 +1622,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
     Int actualTotalBits      = 0;
     Int estimatedBits        = 0;
     Int tmpBitsBeforeWriting = 0;
+    // [==== 码率控制初始化begin ====]
     // 如果启用码率控制，
     if ( m_pcCfg->getUseRateCtrl() ) // TODO: does this work with multiple slices and slice-segments?
     {
@@ -1676,6 +1717,8 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
       m_pcSliceEncoder->resetQP( pcPic, sliceQP, lambda );
     }
 
+    // [===== 码率控制初始化 end ====]
+
     UInt uiNumSliceSegments = 1;
 
     // Allocate some coders, now the number of tiles are known.
@@ -1690,6 +1733,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
       pcSlice->setSliceCurStartCtuTsAddr( 0 );
       pcSlice->setSliceSegmentCurStartCtuTsAddr( 0 );
 
+      // [===== compressSlice 遍历各种模式的组合，选取最优的模式组合以及参数，同时得到变换系数 bgein =====]
       for(UInt nextCtuTsAddr = 0; nextCtuTsAddr < numberOfCtusInFrame; )
       {
         m_pcSliceEncoder->precompressSlice( pcPic );
@@ -1725,6 +1769,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         }
         nextCtuTsAddr = curSliceSegmentEnd;
       }
+      // [== compressSlice 遍历各种模式的组合，选取最优的模式组合以及参数，同时得到变换系数 end ==]
     }
 
     duData.clear();
@@ -1738,6 +1783,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
 
     //-- Loop filter
     Bool bLFCrossTileBoundary = pcSlice->getPPS()->getLoopFilterAcrossTilesEnabledFlag();
+    // 设置环路滤波器是否跨越边界
     m_pcLoopFilter->setCfg(bLFCrossTileBoundary);
     if ( m_pcCfg->getDeblockingFilterMetric() )
     {
@@ -1750,6 +1796,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         applyDeblockingFilterMetric(pcPic, uiNumSliceSegments);
       }
     }
+    // 【！！重要】
     // inloop 滤波
     // 完成去块滤波和SAO
     m_pcLoopFilter->loopFilterPic( pcPic );
@@ -1875,14 +1922,17 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
       pcSlice->setCabacInitFlag(encCabacInitFlag);
 #endif
       tmpBitsBeforeWriting = m_pcEntropyCoder->getNumberOfWrittenBits();
+      // 对 slice 头进行编码
       m_pcEntropyCoder->encodeSliceHeader(pcSlice);
       actualHeadBits += ( m_pcEntropyCoder->getNumberOfWrittenBits() - tmpBitsBeforeWriting );
 
+      // 条带处理结束
       pcSlice->setFinalized(true);
 
       pcSlice->clearSubstreamSizes(  );
       {
         UInt numBinsCoded = 0;
+        // 对条带进行编码
         m_pcSliceEncoder->encodeSlice(pcPic, &(substreamsOut[0]), numBinsCoded);
         binCountsInNalUnits+=numBinsCoded;
       }
@@ -1892,8 +1942,10 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
         // The final bitstream is either nalu.m_Bitstream or pcBitstreamRedirect;
         // Complete the slice header info.
         // 通过合并子流构建最后的比特流
+        // 将熵编码器设置为CAVLC
         m_pcEntropyCoder->setEntropyCoder   ( m_pcCavlcCoder );
         m_pcEntropyCoder->setBitstream(&nalu.m_Bitstream);
+        // 将编码区块波前前向进入点
         m_pcEntropyCoder->encodeTilesWPPEntryPoint( pcSlice );
 
         // Append substreams...
@@ -3101,6 +3153,13 @@ Void TEncGOP::xAttachSliceDataToNalUnit (OutputNALUnit& rNalu, TComOutputBitstre
 
 // Function will arrange the long-term pictures in the decreasing order of poc_lsb_lt,
 // and among the pictures with the same lsb, it arranges them in increasing delta_poc_msb_cycle_lt value
+/**
+ * 排列RPS中参考图像集
+ *
+ * @param pcSlice
+ * @param rcListPic
+ * @return
+ */
 Void TEncGOP::arrangeLongtermPicturesInRPS(TComSlice *pcSlice, TComList<TComPic*>& rcListPic)
 {
   if(pcSlice->getRPS()->getNumberOfLongtermPictures() == 0)

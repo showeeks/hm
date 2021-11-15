@@ -124,7 +124,11 @@ Void TComLoopFilter::destroy()
 
 /**
  * 为图片的每个CU都做一次deblocking
- * 有篇不错的文章可以看看 https://blog.csdn.net/NB_vol_1/article/details/55002755?spm=1001.2014.3001.5501
+ * 1. 水平边界滤波
+ *
+ * 遍历图像中的每一个CU，对每一个CU的PU或者TU的水平边界进行滤波
+ *
+ * 2. 垂直边界滤波
  - call deblocking function for every CU
  .
  \param  pcPic   picture class (TComPic) pointer
@@ -169,6 +173,22 @@ Void TComLoopFilter::loopFilterPic( TComPic* pcPic )
 /**
  * 对每一个CU进行去块滤波
  * 边界的两边各修正3个像素值
+ * 调用xSetLoopfilterParam 判断CU的边界是否存在，例如是否有内部边界（假如CU划分成了PU或者TU，那么就拥有）
+ * 是否拥有左边的边界和上边的边界，以及边界是否可用（是否需要滤波），把这些信息存到LFCUParam对象中
+ *
+ * 调用 xSetEdgefilterTU，根据LFCUParam 对象的信息设置 TU以及内部base_unit(4x4大小的块)的边界是否需要
+ * 滤波。
+ *
+ * 调用xSetEdgefilterPU，根据 LFCUParam对象的信息设置PU及其内部base_unit(4x4大小的块)的边界是否需要
+ * 滤波。
+ *
+ * 调用xGetBoundaryStrengthSingle 计算边界强度
+ *
+ * 调用xEdgeFilterLuma对亮度块进行滤波，在函数的内部会根据一定的图像内容特性来判断是否使用强滤波器。最后调用
+ * xPelFilterLuma来进行真实的滤波操作。
+ *
+ * 调用xEdgeFilterChroma 对色度块进行滤波（流程与xEdgeFilterLuma类似）
+ *
  Deblocking filter process in CU-based (the same function as conventional's)
 
  \param pcCU             指针指向 CTU/CU Pointer to CTU/CU structure

@@ -186,6 +186,7 @@ UInt TEncBinCABAC::getNumWrittenBits()
  */
 Void TEncBinCABAC::encodeBin( UInt binValue, ContextModel &rcCtxModel )
 {
+  // 调试的打印信息
   //{
   //  DTRACE_CABAC_VL( g_nSymbolCounter++ )
   //  DTRACE_CABAC_T( "\tstate=" )
@@ -199,12 +200,17 @@ Void TEncBinCABAC::encodeBin( UInt binValue, ContextModel &rcCtxModel )
   const UInt startingRange = m_uiRange;
 #endif
 
+  // 比特计数，如果开启了计数功能就计数
   m_uiBinsCoded += m_binCountIncrement;
+  // 设置已经编码的标志
   rcCtxModel.setBinsCoded( 1 );
 
+  // 查表获取 LPS 对应的子区间的长度
   UInt  uiLPS   = TComCABACTables::sm_aucLPSTable[ rcCtxModel.getState() ][ ( m_uiRange >> 6 ) & 3 ];
+  // m_uiRange 表示 MPS 对应子区间的长度
   m_uiRange    -= uiLPS;
 
+  // 如果二进制符号不等于MPS
   if( binValue != rcCtxModel.getMps() )
   {
     Int numBits = TComCABACTables::sm_aucRenormTable[ uiLPS >> 3 ];

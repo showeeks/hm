@@ -49,12 +49,14 @@ using namespace std;
 
 /**
  - initialize context model with respect to QP and initialization value
+ - 根据initValue和量化参数计算 MPS 和 delta
  .
  \param  qp         input QP value
  \param  initValue  8 bit initialization value
  */
 Void ContextModel::init( Int qp, Int initValue )
 {
+  // 选取中间值
   qp = Clip3(0, 51, qp);
 
   Int  slope      = (initValue>>4)*5 - 45;

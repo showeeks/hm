@@ -1367,6 +1367,7 @@ public:
 
   Void                        setRPSidx( Int rpsIdx )                                { m_rpsIdx = rpsIdx;                                            }
   Int                         getRPSidx() const                                      { return m_rpsIdx;                                              }
+  // 参考图像集修改标志
   TComRefPicListModification* getRefPicListModification()                            { return &m_RefPicListModification;                             }
   Void                        setLastIDR(Int iIDRPOC)                                { m_iLastIDR = iIDRPOC;                                         }
   Int                         getLastIDR() const                                     { return m_iLastIDR;                                            }
