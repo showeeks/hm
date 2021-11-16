@@ -3837,7 +3837,20 @@ Distortion TEncSearch::xGetTemplateCost( TComDataCU* pcCU,
   return uiCost;
 }
 
-
+/**
+ *
+ * @param pcCU
+ * @param pcYuvOrg
+ * @param iPartIdx
+ * @param eRefPicList
+ * @param pcMvPred
+ * @param iRefIdxPred
+ * @param rcMv
+ * @param ruiBits
+ * @param ruiCost
+ * @param bBi
+ * @return
+ */
 Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPartIdx, RefPicList eRefPicList, TComMv* pcMvPred, Int iRefIdxPred, TComMv& rcMv, UInt& ruiBits, Distortion& ruiCost, Bool bBi  )
 {
   UInt          uiPartAddr;
@@ -3851,15 +3864,19 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
   TComYuv*      pcYuv = pcYuvOrg;
 
   assert(eRefPicList < MAX_NUM_REF_LIST_ADAPT_SR && iRefIdxPred<Int(MAX_IDX_ADAPT_SR));
+  // 搜索的范围
   m_iSearchRange = m_aaiAdaptSR[eRefPicList][iRefIdxPred];
 
   Int           iSrchRng      = ( bBi ? m_bipredSearchRange : m_iSearchRange );
+  // TComPattern 是用于访问相邻块/像素的一个工具类
   TComPattern   cPattern;
 
   Double        fWeight       = 1.0;
 
+  // 得到PU的索引和尺寸
   pcCU->getPartIndexAndSize( iPartIdx, uiPartAddr, iRoiWidth, iRoiHeight );
 
+  // 如果是B Slice
   if ( bBi ) // Bipredictive ME
   {
     TComYuv*  pcYuvOther = &m_acYuvPred[1-(Int)eRefPicList];
@@ -3880,6 +3897,7 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
   pcCU->getPartPosition(iPartIdx, roiPosX, roiPosY, roiW, roiH);
   assert(roiW == iRoiWidth);
   assert(roiH == iRoiHeight);
+  // 访问相邻块之前进行一些地址方面的初始化
   cPattern.initPattern( pcYuv->getAddr(COMPONENT_Y, uiPartAddr),
                         iRoiWidth,
                         iRoiHeight,
@@ -3896,11 +3914,14 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
                         pcCU->getSlice()->getSPS()->getBitDepth(CHANNEL_TYPE_LUMA) );
 #endif
 
+  // 参考帧的像素
   Pel*        piRefY      = pcCU->getSlice()->getRefPic( eRefPicList, iRefIdxPred )->getPicYuvRec()->getAddr( COMPONENT_Y, pcCU->getCtuRsAddr(), pcCU->getZorderIdxInCtu() + uiPartAddr );
   Int         iRefStride  = pcCU->getSlice()->getRefPic( eRefPicList, iRefIdxPred )->getPicYuvRec()->getStride(COMPONENT_Y);
 
+  // MVP
   TComMv      cMvPred = *pcMvPred;
 
+  // 设置运动估计的搜索范围
   if ( bBi )
   {
 #if MCTS_ENC_CHECK
@@ -3918,25 +3939,32 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
 #endif
   }
 
+  // 取得率失真代价
   m_pcRdCost->selectMotionLambda( true, 0, pcCU->getCUTransquantBypass(uiPartAddr) );
 
+  // 设置预测得到的MV
   m_pcRdCost->setPredictor  ( *pcMvPred );
   m_pcRdCost->setCostScale  ( 2 );
 
+  // 权重预测方面的设置
   setWpScalingDistParam( pcCU, iRefIdxPred, eRefPicList );
   //  Do integer search
+  // 先进行整像素搜索，确定一个局部的最佳值
   if ( (m_motionEstimationSearchMethod==MESEARCH_FULL) || bBi )
   {
+    // 如果是 B Slice 或者 不是快速搜索模式，进行常规搜索
     xPatternSearch      ( &cPattern, piRefY, iRefStride, &cMvSrchRngLT, &cMvSrchRngRB, rcMv, ruiCost );
   }
   else
   {
+    // 进行快速搜索
     rcMv = *pcMvPred;
     const TComMv *pIntegerMv2Nx2NPred=0;
     if (pcCU->getPartitionSize(0) != SIZE_2Nx2N || pcCU->getDepth(0) != 0)
     {
       pIntegerMv2Nx2NPred = &(m_integerMv2Nx2N[eRefPicList][iRefIdxPred]);
     }
+    // 快速搜索
     xPatternSearchFast  ( pcCU, &cPattern, piRefY, iRefStride, &cMvSrchRngLT, &cMvSrchRngRB, rcMv, ruiCost, pIntegerMv2Nx2NPred );
     if (pcCU->getPartitionSize(0) == SIZE_2Nx2N)
     {
@@ -3948,11 +3976,15 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
   m_pcRdCost->setCostScale ( 1 );
 
   const Bool bIsLosslessCoded = pcCU->getCUTransquantBypass(uiPartAddr) != 0;
+  // 进行亚像素搜索(1/2像素，1/4像素等)，以提高搜索的精度
   xPatternSearchFracDIF( bIsLosslessCoded, &cPattern, piRefY, iRefStride, &rcMv, cMvHalf, cMvQter, ruiCost );
 
   m_pcRdCost->setCostScale( 0 );
+  // 整像素
   rcMv <<= 2;
+  // 1/2 像素
   rcMv += (cMvHalf <<= 1);
+  // 1/4 像素
   rcMv +=  cMvQter;
 
   UInt uiMvBits = m_pcRdCost->getBitsOfVectorWithPredictor( rcMv.getHor(), rcMv.getVer() );
@@ -4040,7 +4072,20 @@ Void TEncSearch::xSetSearchRange ( const TComDataCU* const pcCU, const TComMv& c
 #endif
 }
 
-
+/**
+ * 整像素运动估计
+ *
+ * 整像素精度的全搜索算法
+ *
+ * @param pcPatternKey
+ * @param piRefY
+ * @param iRefStride
+ * @param pcMvSrchRngLT
+ * @param pcMvSrchRngRB
+ * @param rcMv
+ * @param ruiSAD
+ * @return
+ */
 Void TEncSearch::xPatternSearch( const TComPattern* const pcPatternKey,
                                  const Pel*               piRefY,
                                  const Int                iRefStride,
@@ -4060,9 +4105,11 @@ Void TEncSearch::xPatternSearch( const TComPattern* const pcPatternKey,
   Int         iBestY = 0;
 
   //-- jclee for using the SAD function pointer
+  // 设置计算SAD的函数指针和参数
   m_pcRdCost->setDistParam( pcPatternKey, piRefY, iRefStride,  m_cDistParam );
 
   // fast encoder decision: use subsampled SAD for integer ME
+  // 快速编码决策：使用亚像素的SAD计算
   if ( m_pcEncCfg->getFastInterSearchMode()==FASTINTERSEARCH_MODE1 || m_pcEncCfg->getFastInterSearchMode()==FASTINTERSEARCH_MODE3 )
   {
     if ( m_cDistParam.iRows > 8 )
@@ -4072,21 +4119,27 @@ Void TEncSearch::xPatternSearch( const TComPattern* const pcPatternKey,
   }
 
   piRefY += (iSrchRngVerTop * iRefStride);
+  // 在预定的范围内进行搜索
   for ( Int y = iSrchRngVerTop; y <= iSrchRngVerBottom; y++ )
   {
     for ( Int x = iSrchRngHorLeft; x <= iSrchRngHorRight; x++ )
     {
       //  find min. distortion position
+      // piRefY是根据MVP得到的搜索起点，要在起点周围进行搜索
+
+      // 得到该位置的像素块
       m_cDistParam.pCur = piRefY + x;
 
       setDistParamComp(COMPONENT_Y);
 
       m_cDistParam.bitDepth = pcPatternKey->getBitDepthY();
+      // 计算当前块作为参考块时的SAD
       uiSad = m_cDistParam.DistFunc( &m_cDistParam );
 
       // motion cost
       uiSad += m_pcRdCost->getCostOfVectorWithPredictor( x, y );
 
+      // 更新最优代价，以及坐标
       if ( uiSad < uiSadBest )
       {
         uiSadBest = uiSad;
@@ -4098,6 +4151,7 @@ Void TEncSearch::xPatternSearch( const TComPattern* const pcPatternKey,
     piRefY += iRefStride;
   }
 
+  // 最优的MV
   rcMv.set( iBestX, iBestY );
 
   ruiSAD = uiSadBest - m_pcRdCost->getCostOfVectorWithPredictor( iBestX, iBestY );
@@ -4105,6 +4159,20 @@ Void TEncSearch::xPatternSearch( const TComPattern* const pcPatternKey,
 }
 
 
+/**
+ * 快速搜索
+ *
+ * @param pcCU
+ * @param pcPatternKey
+ * @param piRefY
+ * @param iRefStride
+ * @param pcMvSrchRngLT
+ * @param pcMvSrchRngRB
+ * @param rcMv
+ * @param ruiSAD
+ * @param pIntegerMv2Nx2NPred
+ * @return
+ */
 Void TEncSearch::xPatternSearchFast( const TComDataCU* const  pcCU,
                                      const TComPattern* const pcPatternKey,
                                      const Pel* const         piRefY,
@@ -4142,7 +4210,30 @@ Void TEncSearch::xPatternSearchFast( const TComDataCU* const  pcCU,
   }
 }
 
-
+/**
+ * 使用了TZ算法的快速整像素运动估计
+ *
+ * 1. 确定搜索起点，利用AMVP得到的MVP确定搜索起点。AMVP选出的候选MV有多个，选择其中代价最小的一个作为预测MV，
+ * 并作为搜索的起始点。
+ * 2. 以步长1开始，按照菱形或者正方形搜索模板，在搜索范围内进行搜索，然后按照2的指数次幂的方式递增步长，然后选
+ * 出率失真代价最优的垫作为搜索结果。
+ * 3. 以2得到的搜索结果作为搜索起始点，以步长1开始，在该店的周围做两点搜索，目的是补充搜索最优点周围尚未搜索的
+ * 点（从这一步开始可能就需要进行运动补偿了）
+ * 4. 如果3得到的最优结果对应补偿大于某个阈值，那么以这个点为中心，在一定的范围内做全搜索，然后再次选择最优点。
+ * 5. 以4得到的
+ *
+ * @param pcCU
+ * @param pcPatternKey
+ * @param piRefY
+ * @param iRefStride
+ * @param pcMvSrchRngLT
+ * @param pcMvSrchRngRB
+ * @param rcMv
+ * @param ruiSAD
+ * @param pIntegerMv2Nx2NPred
+ * @param bExtendedSettings
+ * @return
+ */
 Void TEncSearch::xTZSearch( const TComDataCU* const pcCU,
                             const TComPattern* const pcPatternKey,
                             const Pel* const         piRefY,
@@ -4632,7 +4723,19 @@ Void TEncSearch::xTZSearchSelective( const TComDataCU* const   pcCU,
 
 }
 
-
+/**
+ * 亚像素搜索（1/2像素，1/4像素等），以提高搜索的精度
+ *
+ * @param bIsLosslessCoded
+ * @param pcPatternKey
+ * @param piRefY
+ * @param iRefStride
+ * @param pcMvInt
+ * @param rcMvHalf
+ * @param rcMvQter
+ * @param ruiCost
+ * @return
+ */
 Void TEncSearch::xPatternSearchFracDIF(
                                        Bool         bIsLosslessCoded,
                                        TComPattern* pcPatternKey,
