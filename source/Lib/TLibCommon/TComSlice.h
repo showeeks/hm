@@ -432,16 +432,27 @@ struct ChromaQpAdj
   } u;
 };
 
+/**
+ * VPS数据结构
+ * VPS用于描述时域各层之间的依赖关系
+ */
 class TComVPS
 {
 private:
+    // 当前VPS的id
   Int                   m_VPSId;
+    // 最大时域子层数量
+    // vps_max_layers_minus1 在编码中是 -1 版本，取值0-6最大支持7个子层
   UInt                  m_uiMaxTLayers;
+  // 值为0，留作他用
   UInt                  m_uiMaxLayers;
+  // 用于指示时域子层升档，从低子层切入高子层
   Bool                  m_bTemporalIdNestingFlag;
-
+  // HighestTid=i时，解码顺序在某一幅图像之后，显示顺序在该幅图像之前的图像的最大数量为 m_numReorderPics[i]
   UInt                  m_numReorderPics[MAX_TLAYER];
+  // CVS的图像存储单元中解码图像所需要的最大缓存
   UInt                  m_uiMaxDecPicBuffering[MAX_TLAYER];
+  // maxLatencyIncreasePlus1
   UInt                  m_uiMaxLatencyIncrease[MAX_TLAYER]; // Really max latency increase plus 1 (value 0 expresses no limit)
 
   UInt                  m_numHrdParameters;
