@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 {
   TAppEncTop  cTAppEncTop;
 
-  // 先打印编译时的信息。
+  // 先打印编译时的信息。
   fprintf( stdout, "\n" );
   fprintf( stdout, "HM software: Encoder Version [%s] (including RExt)", NV_VERSION );
   fprintf( stdout, NVM_ONOS );

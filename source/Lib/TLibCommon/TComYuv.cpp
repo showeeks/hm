@@ -220,7 +220,10 @@ Void TComYuv::copyPartToComponent( const ComponentID compID, TComYuv* pcYuvDst, 
 
 
 
-
+/**
+ * 
+ * @param 
+ */
 Void TComYuv::copyPartToPartYuv   ( TComYuv* pcYuvDst, const UInt uiPartIdx, const UInt iWidth, const UInt iHeight ) const
 {
   for(Int comp=0; comp<getNumberValidComponents(); comp++)

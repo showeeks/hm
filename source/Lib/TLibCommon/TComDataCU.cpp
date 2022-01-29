@@ -1862,7 +1862,14 @@ UChar TComDataCU::getNumPartitions(const UInt uiAbsPartIdx) const
   return  iNumPart;
 }
 
-// This is for use by a leaf/sub CU object only, with no additional AbsPartIdx
+/**
+ * This is for use by a leaf/sub CU object only, with no additional AbsPartIdx
+ * 返回 PU 的地址，宽度，高度
+ * 
+ * @param ruiPartAddr PU 的地址
+ * @param riWidth 高度
+ * @param riHeight 高度
+ */
 Void TComDataCU::getPartIndexAndSize( UInt uiPartIdx, UInt& ruiPartAddr, Int& riWidth, Int& riHeight ) const
 {
   switch ( m_pePartSize[0] )

@@ -32,8 +32,11 @@ if( SET_ENABLE_TRACING )
   endif()
 endif()
 
+find_package(glog REQUIRED)
+find_package(fmt REQUIRED)
+
 target_include_directories( ${LIB_NAME} PUBLIC . )
-target_link_libraries( ${LIB_NAME} TLibCommon Threads::Threads )
+target_link_libraries( ${LIB_NAME} TLibCommon Threads::Threads glog::glog fmt::fmt)
 
 if( CMAKE_COMPILER_IS_GNUCC )
   # this is quite certainly a compiler problem

@@ -34,6 +34,7 @@
 /** \file     TEncGOP.cpp
     \brief    GOP encoder class
 */
+#include <glog/logging.h>
 
 #include <list>
 #include <algorithm>
@@ -1236,7 +1237,7 @@ Void TEncGOP::compressGOP( Int iPOCLast, Int iNumPicRcvd, TComList<TComPic*>& rc
                            Bool isField, Bool isTff, const InputColourSpaceConversion ip_conversion, const InputColourSpaceConversion snr_conversion, const TEncAnalyze::OutputLogControl &outputLogCtrl )
 {
   // TODO: Split this function up.
-
+  LOG(INFO) << "开始压缩 GOP " ;
   TComPic*        pcPic = NULL;
   TComPicYuv*     pcPicYuvRecOut;
   TComSlice*      pcSlice;
@@ -2171,6 +2172,7 @@ Void TEncGOP::preLoopFilterPicAll( TComPic* pcPic, UInt64& ruiDist )
 
 Void TEncGOP::xInitGOP( Int iPOCLast, Int iNumPicRcvd, Bool isField )
 {
+  LOG(INFO) << "初始化GOP";
   assert( iNumPicRcvd > 0 );
   //  Exception for the first frames
   if ( ( isField && (iPOCLast == 0 || iPOCLast == 1) ) || (!isField  && (iPOCLast == 0))  )

@@ -35,6 +35,7 @@
  \brief    encoder search class
  */
 
+#include <glog/logging.h>
 #include "TLibCommon/CommonDef.h"
 #include "TLibCommon/TComRom.h"
 #include "TLibCommon/TComMotionInfo.h"
@@ -3838,42 +3839,51 @@ Distortion TEncSearch::xGetTemplateCost( TComDataCU* pcCU,
 }
 
 /**
+ * 运动估计世纪就是当前块在参考图像中搜索找到匹配块的处理过程
+ * 该函数是运动估计的入口函数，通过调用 xPatternSearch，xPatternSearchFast, xPatternSearchFracDIF 进行运动搜索
+ * 一帧会做很多运动估计。
+ * 
+ * 首先，设置搜索范围
+ * 然后，通过整像素搜索得到一个最优点，将这个最优点作为起点进行亚像素搜索，最终得到1/4精度为单位的MV.
  *
  * @param pcCU
- * @param pcYuvOrg
+ * @param pcYuvOrg 图像
  * @param iPartIdx
  * @param eRefPicList
  * @param pcMvPred
- * @param iRefIdxPred
+ * @param iRefIdxPred 参考帧序号
  * @param rcMv
  * @param ruiBits
  * @param ruiCost
- * @param bBi
+ * @param bBi 是否是双向预测
  * @return
  */
 Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPartIdx, RefPicList eRefPicList, TComMv* pcMvPred, Int iRefIdxPred, TComMv& rcMv, UInt& ruiBits, Distortion& ruiCost, Bool bBi  )
 {
+  // LOG(INFO) << "运动估计入口";
   UInt          uiPartAddr;
   Int           iRoiWidth;
   Int           iRoiHeight;
 
-  TComMv        cMvHalf, cMvQter;
+  TComMv        cMvHalf, cMvQter; // 1/2 和 1/4 精度的 MV
   TComMv        cMvSrchRngLT;
   TComMv        cMvSrchRngRB;
 
-  TComYuv*      pcYuv = pcYuvOrg;
+  TComYuv*      pcYuv = pcYuvOrg; // 图像地址
 
   assert(eRefPicList < MAX_NUM_REF_LIST_ADAPT_SR && iRefIdxPred<Int(MAX_IDX_ADAPT_SR));
   // 搜索的范围
+  // 根据参考帧列表类型，参考帧序号自适应设置搜索范围
   m_iSearchRange = m_aaiAdaptSR[eRefPicList][iRefIdxPred];
 
+  // 搜索范围 根据是否是双向预测设置搜索范围
   Int           iSrchRng      = ( bBi ? m_bipredSearchRange : m_iSearchRange );
   // TComPattern 是用于访问相邻块/像素的一个工具类
   TComPattern   cPattern;
 
   Double        fWeight       = 1.0;
 
-  // 得到PU的索引和尺寸
+  // 得到PU的地址，宽度，高度
   pcCU->getPartIndexAndSize( iPartIdx, uiPartAddr, iRoiWidth, iRoiHeight );
 
   // 如果是B Slice
@@ -3898,6 +3908,7 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
   assert(roiW == iRoiWidth);
   assert(roiH == iRoiHeight);
   // 访问相邻块之前进行一些地址方面的初始化
+  // 初始化待搜索的PU的首地址，宽度，高度，跨度，比特深度
   cPattern.initPattern( pcYuv->getAddr(COMPONENT_Y, uiPartAddr),
                         iRoiWidth,
                         iRoiHeight,
@@ -3915,6 +3926,7 @@ Void TEncSearch::xMotionEstimation( TComDataCU* pcCU, TComYuv* pcYuvOrg, Int iPa
 #endif
 
   // 参考帧的像素
+  // 换取参考图像首地址和跨度
   Pel*        piRefY      = pcCU->getSlice()->getRefPic( eRefPicList, iRefIdxPred )->getPicYuvRec()->getAddr( COMPONENT_Y, pcCU->getCtuRsAddr(), pcCU->getZorderIdxInCtu() + uiPartAddr );
   Int         iRefStride  = pcCU->getSlice()->getRefPic( eRefPicList, iRefIdxPred )->getPicYuvRec()->getStride(COMPONENT_Y);
 

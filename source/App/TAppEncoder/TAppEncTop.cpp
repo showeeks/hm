@@ -714,6 +714,7 @@ Void TAppEncTop::encode()
     }
     else
     {
+      // 一般调用这个，因为用不着场编码
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, ipCSC, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
     }
 

@@ -39,6 +39,7 @@
 #include "TEncTop.h"
 #include "TEncPic.h"
 #include "TLibCommon/TComChromaFormat.h"
+#include <glog/logging.h>
 #if FAST_BIT_EST
 #include "TLibCommon/ContextModel.h"
 #endif
@@ -328,6 +329,7 @@ Void TEncTop::deletePicBuffer()
  */
 Void TEncTop::encode( Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvTrueOrg, const InputColourSpaceConversion ipCSC, const InputColourSpaceConversion snrCSC, TComList<TComPicYuv*>& rcListPicYuvRecOut, std::list<AccessUnit>& accessUnitsOut, Int& iNumEncoded )
 {
+  LOG(INFO) << "开始编码";
   if (pcPicYuvOrg != NULL)
   {
     // 获取原始yuv
@@ -412,6 +414,7 @@ Void separateFields(Pel* org, Pel* dstField, UInt stride, UInt width, UInt heigh
 // https://blog.csdn.net/lin453701006/article/details/52804298
 Void TEncTop::encode(Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvTrueOrg, const InputColourSpaceConversion ipCSC, const InputColourSpaceConversion snrCSC, TComList<TComPicYuv*>& rcListPicYuvRecOut, std::list<AccessUnit>& accessUnitsOut, Int& iNumEncoded, Bool isTff)
 {
+  LOG(INFO) << "场编码";
   iNumEncoded = 0;
 
   for (Int fieldNum=0; fieldNum<2; fieldNum++)
